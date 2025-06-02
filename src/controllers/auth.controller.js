@@ -212,3 +212,28 @@ export const resetPassword = async (req, res) => {
     });
   }
 };
+
+export const getAccountUser = async (req, res) => {
+  try {
+    const userDetails = await User.findById(req.user._id).select(
+      "-password -__v"
+    );
+    if (!userDetails) {
+      return res.status(404).json({
+        success: false,
+        message: "Vui lòng đăng nhập",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: userDetails,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      data: {},
+      message: "Lỗi server: " + error.message,
+    });
+  }
+};

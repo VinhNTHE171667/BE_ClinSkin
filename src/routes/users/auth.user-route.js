@@ -9,9 +9,11 @@ import {
   register,
   sendOtp,
   verifyOtp,
-  resetPassword
+  resetPassword,
+  getAccountUser
 } from "../../controllers/auth.controller.js";
 import { validateMiddleWare } from "../../middleware/validate.middleware.js";
+import { authMiddlewareUser } from "../../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -25,5 +27,6 @@ router.post(
   validateMiddleWare,
   resetPassword
 );
+router.get("/account", authMiddlewareUser, getAccountUser);
 
 export default router;
