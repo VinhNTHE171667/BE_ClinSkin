@@ -68,3 +68,8 @@ export const verifyOtpValidate = [
         .isNumeric()
         .withMessage("Mã OTP chỉ được chứa số"),
 ];
+
+export const loginAdminValidate = [
+  body("username").notEmpty().withMessage("Vui lòng nhập tên đăng nhập"),
+  body("password").notEmpty().withMessage("Vui lòng nhập mật khẩu"),
+];

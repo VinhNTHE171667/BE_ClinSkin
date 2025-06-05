@@ -4,6 +4,7 @@ import userRoutes from "./routes/users/index.js";
 import http from "http";
 import cors from "cors";
 import connectDabase from "./configs/database.js";
+import adminRoutes from "./routes/admins/index.js";
 
 dotenv.config();
 
@@ -21,13 +22,13 @@ app.use(
       "Authorization",
       "X-User-Header",
       "X-Admin-Header",
-      "X-Doctor-Header",
     ],
   })
 );
 
 app.use(express.json());
 app.use("/api/v1", userRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 server.listen(PORT, async () => {
   await connectDabase();

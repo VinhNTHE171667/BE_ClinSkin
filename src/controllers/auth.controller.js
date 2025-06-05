@@ -4,11 +4,20 @@ import User from "../models/user.model.js";
 import Otp from "../models/otp.model.js";
 import { generateOTP } from "../ultis/generateOTP.js";
 import { sendEmail } from "../configs/mail.js";
+import Admin from "../models/admin.model.js";
 
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, email: user.email },
     process.env.JWT_SECRET_KEY_USER,
+    { expiresIn: process.env.JWT_EXPIRES_IN }
+  );
+};
+
+const generateTokenAdmin = (admin) => {
+  return jwt.sign(
+    { id: admin._id, username: admin.username, role: admin.role },
+    process.env.JWT_SECRET_KEY_ADMIN,
     { expiresIn: process.env.JWT_EXPIRES_IN }
   );
 };
@@ -234,6 +243,47 @@ export const getAccountUser = async (req, res) => {
       success: false,
       data: {},
       message: "Lỗi server: " + error.message,
+    });
+  }
+};
+
+export const loginAdmin = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const admin = await Admin.findOne({ username });
+
+    if (!admin || !(await bcrypt.compare(password, admin.password))) {
+      return res.status(400).json({
+        success: false,
+        message: "Thông tin đăng nhập không chính xác",
+      });
+    }
+
+    if (!admin.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản đã bị vô hiệu hóa",
+      });
+    }
+
+    const token = generateTokenAdmin(admin);
+    return res.status(200).json({
+      success: true,
+      accessToken: token,
+      data: {
+        _id: admin._id,
+        name: admin.name,
+        username: admin.username,
+        avatar: admin.avatar,
+        role: admin.role,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi đăng nhập admin",
+      error: error.message,
     });
   }
 };
