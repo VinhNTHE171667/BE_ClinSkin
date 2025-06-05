@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { initializeAdmin } from "../models/admin.model.js";
 
 const connectDabase = async () => {
   try {
@@ -8,6 +9,7 @@ const connectDabase = async () => {
         dbName: process.env.DB_NAME,
       }
     );
+    initializeAdmin();
   } catch (error) {
     console.log(error);
   }
