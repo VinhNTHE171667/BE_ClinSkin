@@ -287,3 +287,42 @@ export const loginAdmin = async (req, res) => {
     });
   }
 };
+
+export const getAccountAdmin = async (req, res) => {
+  try {
+    const adminDetails = await Admin.findById(req.admin._id).select(
+      "-password -__v"
+    );
+
+    if (!adminDetails) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông tin tài khoản admin",
+      });
+    }
+
+    if (!adminDetails.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản admin đã bị vô hiệu hóa",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        _id: adminDetails._id,
+        name: adminDetails.name,
+        username: adminDetails.username,
+        avatar: adminDetails.avatar,
+        role: adminDetails.role,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      data: {},
+    });
+  }
+};
