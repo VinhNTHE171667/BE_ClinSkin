@@ -34,7 +34,7 @@ const promotionSchema = new mongoose.Schema({
       discount: {
         type: Number,
         required: true,
-        min: 0 // có thể là % hoặc số tiền, tuỳ bạn xử lý logic
+        min: 0 
       }
     }
   ]

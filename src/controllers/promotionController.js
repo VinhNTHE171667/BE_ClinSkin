@@ -2,8 +2,54 @@ import Promotion from '../models/promotion.js';
 
 export const getAllPromotions = async (req, res) => {
   try {
-    const promotions = await Promotion.find();
-    res.status(200).json(promotions);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const { isActive, fromDate, toDate } = req.query;
+
+    const filter = {};
+
+    if (isActive !== undefined) {
+      filter.isActive = isActive === 'true';
+    }
+
+    if (fromDate || toDate) {
+      filter.startDate = {};
+      if (fromDate) {
+        filter.startDate.$gte = new Date(fromDate);
+      }
+      if (toDate) {
+        filter.startDate.$lte = new Date(toDate);
+      }
+    }
+
+    if (fromDate || toDate) {
+      filter.endDate = {};
+      if (fromDate) {
+        filter.endDate.$gte = new Date(fromDate);
+      }
+      if (toDate) {
+        filter.endDate.$lte = new Date(toDate);
+      }
+    }
+
+
+    const total = await Promotion.countDocuments(filter);
+    const promotions = await Promotion.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ startDate: -1 }); // Sắp xếp mới nhất trước
+
+    res.status(200).json({
+      data: promotions,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi khi lấy danh sách khuyến mãi', error });
   }

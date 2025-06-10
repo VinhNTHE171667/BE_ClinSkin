@@ -12,6 +12,7 @@ import { getAllPromotions,
   createPromotion, 
   updatePromotion, 
   deletePromotion } from "../../controllers/promotionController.js";
+import { promotionValidationRules } from "../../validates/promotionValidator.js";
 
 const router = express.Router();
 
@@ -23,9 +24,9 @@ router.get(
 );
 
 
-router.get('/promotion',getAllPromotions);
-router.get('/promotion/:id', getPromotionById);
-router.post('/promotion/createPromotion', createPromotion);
-router.put('/promotion/updatePromotion/:id',updatePromotion);
-router.delete('/promotion/deletePromotion/:id',deletePromotion);
+router.get('/promotion',promotionValidationRules,validateMiddleWare,getAllPromotions);
+router.get('/promotion/:id',promotionValidationRules,validateMiddleWare, getPromotionById);
+router.post('/promotion/createPromotion',promotionValidationRules,validateMiddleWare, createPromotion);
+router.put('/promotion/updatePromotion/:id',promotionValidationRules,validateMiddleWare,updatePromotion);
+router.delete('/promotion/deletePromotion/:id',promotionValidationRules,validateMiddleWare,deletePromotion);
 export default router;
