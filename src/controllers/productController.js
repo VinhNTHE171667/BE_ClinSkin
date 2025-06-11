@@ -188,7 +188,7 @@ export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const { 
-      name, price, currentStock, categories, brandId, 
+      name, price, categories, brandId, 
       mainImageBase64, additionalImagesBase64, removeImageIds = [],
       description, tags
     } = req.body;
@@ -252,7 +252,6 @@ export const updateProduct = async (req, res) => {
       {
         name: name || product.name,
         price: price !== undefined ? price : product.price,
-        currentStock: currentStock !== undefined ? currentStock : product.currentStock,
         categories: categories || product.categories,
         brandId: brandId || product.brandId,
         mainImage,
