@@ -36,10 +36,13 @@ export const getAllPromotions = async (req, res) => {
 
 
     const total = await Promotion.countDocuments(filter);
-    const promotions = await Promotion.find(filter)
+    const promotions = await Promotion.find(filter).populate({
+      path: 'products.pid',
+      select: 'name'
+    })
       .skip(skip)
       .limit(limit)
-      .sort({ startDate: -1 }); // Sắp xếp mới nhất trước
+      .sort({ createdAt: -1 }); // Sắp xếp mới nhất trước
 
     res.status(200).json({
       data: promotions,
@@ -51,6 +54,7 @@ export const getAllPromotions = async (req, res) => {
       }
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: 'Lỗi khi lấy danh sách khuyến mãi', error });
   }
 };
