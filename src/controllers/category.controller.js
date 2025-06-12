@@ -1,3 +1,4 @@
+import slugify from "slugify";
 import { buildCategoryTree } from "../helpers/category.helper.js";
 import Category from "../models/category.model.js";
 
@@ -151,6 +152,65 @@ export const deleteCategory = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Lỗi server khi xóa danh mục",
+            error: error.message,
+        });
+    }
+};
+
+export const updateCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, parent } = req.body;
+
+        const category = await Category.findById(id);
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy danh mục cần cập nhật",
+            });
+        }
+
+        if (name) {
+            category.name = name;
+            category.slug = slugify(name, { lower: true, locale: "vi" });
+        }
+
+        if (parent !== undefined) {
+            if (parent === null) {
+                // Moving to root level
+                category.parent = null;
+                category.level = 0;
+            } else if (parent !== category.parent?.toString()) {
+                const parentCategory = await Category.findById(parent);
+                if (!parentCategory) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Danh mục cha không tồn tại",
+                    });
+                }
+                category.parent = parent;
+                category.level = parentCategory.level + 1;
+            }
+        }
+
+        const updatedCategory = await category.save({ validateBeforeSave: false });
+
+        // Update levels of all child categories
+        if (category.level !== updatedCategory.level) {
+            await updateChildLevels(updatedCategory._id, updatedCategory.level);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Cập nhật danh mục thành công",
+            data: updatedCategory,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy khi cập nhật danh mục",
             error: error.message,
         });
     }
