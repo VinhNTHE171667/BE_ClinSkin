@@ -1,27 +1,23 @@
 import mongoose from "mongoose";
+import slugify from "slugify";
 
-const BrandSchema = new mongoose.Schema(
+export const BrandSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
-      unique: true,
-      trim: true,
     },
     slug: {
       type: String,
-      unique: true,
       lowercase: true,
-      trim: true,
+      unique: true,
     },
   },
   { timestamps: true }
 );
 
-BrandSchema.pre('save', function(next) {
-  if (this.isModified('name')) {
-    this.slug = slugify(this.name, { lower: true, locale: "vi", strict: true });
-  }
+BrandSchema.pre("save", function (next) {
+  this.slug = slugify(this.name, { lower: true, locale: "vi" });
   next();
 });
 
