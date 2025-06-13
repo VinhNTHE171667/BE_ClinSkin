@@ -154,7 +154,6 @@ export const createProduct = async (req, res) => {
     }
     
     // Tạo sản phẩm mới
-    // Lưu ý: slug sẽ được tự động tạo trong pre-save hook của model
     const newProduct = new Product({
       name,
       price,
@@ -246,7 +245,6 @@ export const updateProduct = async (req, res) => {
     }
     
     // Cập nhật sản phẩm
-    // Lưu ý: slug sẽ được tự động cập nhật trong pre-save hook nếu tên thay đổi
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
       {
