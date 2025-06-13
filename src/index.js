@@ -5,6 +5,7 @@ import http from "http";
 import cors from "cors";
 import connectDabase from "./configs/database.js";
 import adminRoutes from "./routes/admins/index.js";
+import reviewRoutes from "./routes/review/review-route.js";
 
 
 dotenv.config();
@@ -32,7 +33,7 @@ app.use(
 app.use(express.json());
 app.use("/api/v1", userRoutes);
 app.use("/api/v1/admin", adminRoutes);
-
+app.use("/api/v1/admin/reviews", reviewRoutes);
 server.listen(PORT, async () => {
   await connectDabase();
   console.log(`🚀-------------SERVER RUN PORT ${PORT}-------------🚀`);
