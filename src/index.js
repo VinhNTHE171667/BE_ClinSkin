@@ -13,6 +13,8 @@ const PORT = process.env.PORT || 8000;
 
 const app = express();
 const server = http.createServer(app);
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(
   cors({
