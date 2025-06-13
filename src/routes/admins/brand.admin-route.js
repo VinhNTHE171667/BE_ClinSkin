@@ -1,7 +1,10 @@
 import express from "express";
-import { getAllBrand } from "../../controllers/brand.controller.js";
+import { createBrand, deleteBrand, getAllBrand, updateBrand } from "../../controllers/brand.controller.js";
 const router = express.Router();
 
 router.get("/", getAllBrand);
+router.post("/", createBrand);
+router.put("/:id", updateBrand);
+router.delete("/:id", deleteBrand);
 
 export default router;
