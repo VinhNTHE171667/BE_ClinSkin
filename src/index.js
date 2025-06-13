@@ -5,7 +5,6 @@ import http from "http";
 import cors from "cors";
 import connectDabase from "./configs/database.js";
 import adminRoutes from "./routes/admins/index.js";
-import bodyParser from "body-parser";
 
 
 dotenv.config();
