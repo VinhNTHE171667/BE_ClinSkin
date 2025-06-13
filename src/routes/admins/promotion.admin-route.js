@@ -9,6 +9,6 @@ router.get('/',getAllPromotions);
 router.get('/:id',getPromotionById);
 router.post('/createPromotion',promotionValidationRules,validateMiddleWare, createPromotion);
 router.put('/updatePromotion/:id',promotionValidationRules,validateMiddleWare,updatePromotion);
-router.delete('/deletePromotion/:id',promotionValidationRules,validateMiddleWare,deletePromotion);
+router.delete('/deletePromotion/:id',deletePromotion);
 
 export default router;
