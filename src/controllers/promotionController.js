@@ -63,7 +63,10 @@ export const getAllPromotions = async (req, res) => {
 export const getPromotionById = async (req, res) => {
   try {
     const { id } = req.params;
-    const promotion = await Promotion.findById(id);
+    const promotion = await Promotion.findById(id).populate({
+      path: 'products.pid',
+      select: 'name'
+    });
     if (!promotion) return res.status(404).json({ message: 'Không tìm thấy khuyến mãi' });
     res.status(200).json(promotion);
   } catch (error) {
