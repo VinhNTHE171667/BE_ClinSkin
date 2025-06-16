@@ -1,6 +1,7 @@
 // models/Product.js
 
 import mongoose from 'mongoose';
+import slugify from 'slugify';
 
 const productSchema = new mongoose.Schema({
   name: {
@@ -10,7 +11,6 @@ const productSchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    required: true,
     unique: true,
     lowercase: true
   },
@@ -24,10 +24,6 @@ const productSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  ingredients: [{
-    type: String,
-    trim: true
-  }],
   categories: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category'
@@ -38,10 +34,19 @@ const productSchema = new mongoose.Schema({
     required: true
   },
   images: [{
-    type: String // image URL
+    url: {
+      type: String,
+    },
+    public_id: {
+      type: String,
+    }
   }],
   mainImage: {
     url: {
+      type: String,
+      required: true
+    },
+    public_id: {
       type: String,
       required: true
     }
@@ -53,9 +58,34 @@ const productSchema = new mongoose.Schema({
     type: String,
     lowercase: true,
     trim: true
-  }]
+  }],
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date,
+    default: null
+  }
 }, {
   timestamps: true
+});
+
+// Generate slug both for new documents and when updating
+productSchema.pre('save', function(next) {
+  if (this.isModified('name')) {
+    this.slug = slugify(this.name, { lower: true, locale: "vi", strict: true });
+  }
+  next();
+});
+
+// Default query to exclude deleted products
+productSchema.pre(/^find/, function(next) {
+  // this refers to the current query
+  if (!this.getQuery().hasOwnProperty('isDeleted')) {
+    this.find({ isDeleted: false });
+  }
+  next();
 });
 
 const Product = mongoose.model('Product', productSchema);
