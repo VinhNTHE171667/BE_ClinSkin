@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/',getAllPromotions);
 router.get('/:id',getPromotionById);
 router.post('/createPromotion',promotionValidationRules,validateMiddleWare, createPromotion);
-router.put('/updatePromotion/:id',promotionValidationRules,validateMiddleWare,updatePromotion);
+router.put('/updatePromotion/:id',updatePromotion);
 router.delete('/deletePromotion/:id',deletePromotion);
 
 export default router;
