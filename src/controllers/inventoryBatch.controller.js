@@ -1,7 +1,6 @@
 import inventoryBatchService from '../services/inventoryBatch.service.js';
 import { StatusCodes } from 'http-status-codes';
 
-// Create a new inventory batch
 export const createBatch = async (req, res) => {
   try {
     const batchData = req.body;
@@ -22,42 +21,33 @@ export const createBatch = async (req, res) => {
   }
 };
 
-// Get all inventory batches with pagination and filtering
 export const getAllBatches = async (req, res) => {
   try {
-    // Pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     
-    // Filter parameters
     const filter = {};
     
-    // Filter by batch number
     if (req.query.batchNumber) {
       filter.batchNumber = { $regex: req.query.batchNumber, $options: 'i' };
     }
     
-    // Filter by product ID
     if (req.query.productId) {
       filter.productId = req.query.productId;
     }
     
-    // Filter by importer
     if (req.query.importer) {
       filter.importer = req.query.importer;
     }
 
-    // Sorting parameters
     const sortField = req.query.sortBy || 'createdAt';
     const sortOrder = req.query.sortOrder === 'ascend' ? 1 : -1;
     const sort = { [sortField]: sortOrder };
 
-    // Get total count for pagination
     const totalItems = await inventoryBatchService.countBatches(filter);
     const totalPages = Math.ceil(totalItems / limit);
     
-    // Get batches with applied filter, pagination and sorting
     const batches = await inventoryBatchService.getPaginatedBatches(filter, skip, limit, sort);
     
     return res.status(StatusCodes.OK).json({
@@ -81,7 +71,6 @@ export const getAllBatches = async (req, res) => {
   }
 };
 
-// Get inventory batch by batch number
 export const getBatchByNumber = async (req, res) => {
   try {
     const batchNumber = req.params.batchNumber;
@@ -107,7 +96,6 @@ export const getBatchByNumber = async (req, res) => {
   }
 };
 
-// Get inventory batches by product ID
 export const getBatchesByProductId = async (req, res) => {
   try {
     const productId = req.params.productId;
@@ -126,7 +114,6 @@ export const getBatchesByProductId = async (req, res) => {
   }
 };
 
-// Update batch (quantity and expiry date)
 export const updateBatch = async (req, res) => {
   try {
     const { batchNumber } = req.params;
@@ -148,7 +135,6 @@ export const updateBatch = async (req, res) => {
 };
 
 
-// Delete batch
 export const deleteBatch = async (req, res) => {
   try {
     const { batchNumber } = req.params;

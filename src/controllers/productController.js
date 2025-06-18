@@ -41,27 +41,23 @@ export const searchProductByName = async (req, res) => {
   }
 };
 
-// Lấy danh sách sản phẩm có phân trang và lọc
 export const getProducts = async (req, res) => {
   try {
     const { page = 1, pageSize = 10, name = "", category, brandId, minPrice, maxPrice } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(pageSize);
     const limit = parseInt(pageSize);
     
-    // Xây dựng query filter
     const filter = {};
     if (name) filter.name = { $regex: name, $options: 'i' };
     if (category) filter.categories = category;
     if (brandId) filter.brandId = brandId;
     
-    // Filter theo giá
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = parseFloat(minPrice);
       if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
     }
 
-    // Thực hiện query
     const products = await Product.find(filter)
       .populate('categories', 'name')
       .populate('brandId', 'name')
@@ -92,7 +88,6 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// Lấy chi tiết một sản phẩm
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -120,7 +115,6 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// Tạo sản phẩm mới
 export const createProduct = async (req, res) => {
   try {
     const { 
@@ -135,7 +129,6 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // Upload hình ảnh chính lên Cloudinary
     let mainImage;
     try {
       mainImage = await uploadImage(mainImageBase64);
@@ -146,7 +139,6 @@ export const createProduct = async (req, res) => {
       });
     }
     
-    // Upload hình ảnh bổ sung nếu có
     const images = [];
     if (additionalImagesBase64 && additionalImagesBase64.length > 0) {
       for (const base64 of additionalImagesBase64) {
@@ -154,7 +146,6 @@ export const createProduct = async (req, res) => {
           const uploadedImage = await uploadImage(base64);
           images.push(uploadedImage);
         } catch (error) {
-          // Nếu có lỗi khi upload, xóa những hình đã upload để tránh rác
           for (const img of images) {
             await deleteImage(img.public_id);
           }
@@ -168,7 +159,6 @@ export const createProduct = async (req, res) => {
       }
     }
     
-    // Tạo sản phẩm mới
     const newProduct = new Product({
       name,
       price,
@@ -197,7 +187,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-// Cập nhật sản phẩm
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -215,15 +204,12 @@ export const updateProduct = async (req, res) => {
       });
     }
     
-    // Xử lý hình ảnh chính nếu có thay đổi
     let mainImage = product.mainImage;
     if (mainImageBase64) {
       try {
-        // Xóa hình ảnh cũ khỏi Cloudinary
         if (product.mainImage && product.mainImage.public_id) {
           await deleteImage(product.mainImage.public_id);
         }
-        // Upload hình ảnh mới
         mainImage = await uploadImage(mainImageBase64);
       } catch (error) {
         return res.status(400).json({
@@ -233,10 +219,8 @@ export const updateProduct = async (req, res) => {
       }
     }
     
-    // Xử lý hình ảnh bổ sung
     let images = [...product.images];
     
-    // Xóa các hình ảnh đã chọn
     if (removeImageIds && removeImageIds.length > 0) {
       for (const public_id of removeImageIds) {
         await deleteImage(public_id);
@@ -244,7 +228,6 @@ export const updateProduct = async (req, res) => {
       images = images.filter(img => !removeImageIds.includes(img.public_id));
     }
     
-    // Thêm hình ảnh mới nếu có
     if (additionalImagesBase64 && additionalImagesBase64.length > 0) {
       for (const base64 of additionalImagesBase64) {
         try {
@@ -259,7 +242,6 @@ export const updateProduct = async (req, res) => {
       }
     }
     
-    // Cập nhật sản phẩm
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
       {
@@ -289,7 +271,6 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// Xóa mềm sản phẩm
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -326,7 +307,6 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-// Khôi phục sản phẩm đã xoá mềm
 export const restoreProduct = async (req, res) => {
   try {
     const { id } = req.params;
