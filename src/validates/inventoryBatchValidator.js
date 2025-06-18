@@ -5,10 +5,6 @@ export const createBatchValidationRules = [
     .notEmpty().withMessage('ID sản phẩm là bắt buộc')
     .isMongoId().withMessage('ID sản phẩm không hợp lệ'),
 
-  body('importer')
-    .notEmpty().withMessage('ID người nhập là bắt buộc')
-    .isMongoId().withMessage('ID người nhập không hợp lệ'),
-
   body('quantity')
     .notEmpty().withMessage('Số lượng là bắt buộc')
     .isInt({ min: 1 }).withMessage('Số lượng phải là số nguyên dương'),

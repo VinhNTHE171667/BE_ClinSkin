@@ -79,7 +79,8 @@ export const getProducts = async (req, res) => {
         page: parseInt(page),
         totalPage,
         totalItems,
-        pageSize: limit
+        pageSize: limit,
+        hasMore: skip + limit < totalItems
       }
     });
   } catch (error) {

@@ -5,6 +5,7 @@ import { StatusCodes } from 'http-status-codes';
 export const createBatch = async (req, res) => {
   try {
     const batchData = req.body;
+    batchData.importer = req.admin._id;
         
     const newBatch = await inventoryBatchService.createBatch(batchData);
     
@@ -49,7 +50,7 @@ export const getAllBatches = async (req, res) => {
 
     // Sorting parameters
     const sortField = req.query.sortBy || 'createdAt';
-    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    const sortOrder = req.query.sortOrder === 'ascend' ? 1 : -1;
     const sort = { [sortField]: sortOrder };
 
     // Get total count for pagination

@@ -6,9 +6,6 @@ import mongoose from 'mongoose';
 class InventoryBatchService {
   // Create a new inventory batch
   async createBatch(batchData) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
       // Generate a batch number if not provided
       if (!batchData.batchNumber) {
@@ -19,34 +16,25 @@ class InventoryBatchService {
       batchData.remainingQuantity = batchData.quantity;
 
       // Create the new inventory batch
-      const newBatch = await InventoryBatch.create([batchData], { session });
+      const newBatch = await InventoryBatch.create(batchData);
 
       // Update the product's currentStock
       await Product.findByIdAndUpdate(
         batchData.productId,
-        { $inc: { currentStock: batchData.quantity } },
-        { session }
+        { $inc: { currentStock: batchData.quantity } }
       );
 
-      await session.commitTransaction();
-      session.endSession();
-
-      return newBatch[0];
+      return newBatch;
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   }
 
   // Update an inventory batch (quantity and expiry date)
   async updateBatch(batchNumber, newQuantity, expiryDate) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
       // Get the current batch by batchNumber
-      const batch = await InventoryBatch.findOne({ batchNumber }).session(session);
+      const batch = await InventoryBatch.findOne({ batchNumber });
       if (!batch) {
         throw new Error('Inventory batch not found');
       }
@@ -70,8 +58,7 @@ class InventoryBatchService {
         if (remainingQuantityChange !== 0) {
           await Product.findByIdAndUpdate(
             batch.productId,
-            { $inc: { currentStock: remainingQuantityChange } },
-            { session }
+            { $inc: { currentStock: remainingQuantityChange } }
           );
         }
       }
@@ -82,27 +69,19 @@ class InventoryBatchService {
       }
 
       // Save the updated batch
-      await batch.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
+      await batch.save();
 
       return batch;
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   }
 
   // Deduct quantity from batch's remaining quantity
   async deductQuantityFromBatch(batchNumber, quantity) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
       // Get the current batch by batchNumber
-      const batch = await InventoryBatch.findOne({ batchNumber }).session(session);
+      const batch = await InventoryBatch.findOne({ batchNumber });
       if (!batch) {
         throw new Error('Inventory batch not found');
       }
@@ -117,22 +96,16 @@ class InventoryBatchService {
       
       // Update batch with new remainingQuantity
       batch.remainingQuantity = newRemainingQuantity;
-      await batch.save({ session });
+      await batch.save();
 
       // Update product's currentStock by reducing the deducted amount
       await Product.findByIdAndUpdate(
         batch.productId,
-        { $inc: { currentStock: -quantity } },
-        { session }
+        { $inc: { currentStock: -quantity } }
       );
-
-      await session.commitTransaction();
-      session.endSession();
 
       return batch;
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   }
@@ -154,12 +127,9 @@ class InventoryBatchService {
 
   // Delete an inventory batch
   async deleteBatch(batchNumber) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
       // Get the batch to be deleted
-      const batch = await InventoryBatch.findOne({ batchNumber }).session(session);
+      const batch = await InventoryBatch.findOne({ batchNumber });
       if (!batch) {
         throw new Error('Inventory batch not found');
       }
@@ -171,20 +141,14 @@ class InventoryBatchService {
       // Update product's currentStock by subtracting the remainingQuantity
       await Product.findByIdAndUpdate(
         batch.productId,
-        { $inc: { currentStock: -batch.remainingQuantity } },
-        { session }
+        { $inc: { currentStock: -batch.remainingQuantity } }
       );
 
       // Delete the batch
-      await InventoryBatch.deleteOne({ batchNumber }).session(session);
-
-      await session.commitTransaction();
-      session.endSession();
+      await InventoryBatch.deleteOne({ batchNumber });
 
       return { success: true, message: 'Inventory batch deleted successfully' };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   }
