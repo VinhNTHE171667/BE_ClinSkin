@@ -10,6 +10,7 @@ import {
 import productRoutes from "./product.admin-route.js";
 import promotionRoutes from "./promotion.admin-route.js";
 import brandRoutes from "./brand.admin-route.js";
+import userRoutes from "./user.admin-route.js";
 import inventoryBatchRoutes from "./inventoryBatch.routes.js";
 
 const router = express.Router();
@@ -23,6 +24,11 @@ router.use(
     categoryRoutes
 );
 router.use("/brands", brandRoutes);
+router.use(
+  "/users",
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  userRoutes
+);
 router.use(
     "/inventory-batches",
     authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
