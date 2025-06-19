@@ -12,6 +12,7 @@ import promotionRoutes from "./promotion.admin-route.js";
 import brandRoutes from "./brand.admin-route.js";
 import userRoutes from "./user.admin-route.js";
 import inventoryBatchRoutes from "./inventoryBatch.routes.js";
+import salesHistoryRouters from "./sales-history.admin-route.js";
 
 const router = express.Router();
 
@@ -33,6 +34,12 @@ router.use(
     "/inventory-batches",
     authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
     inventoryBatchRoutes
+);
+
+router.use(
+    "/sales-history",
+    authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+    salesHistoryRouters
 );
 
 export default router;

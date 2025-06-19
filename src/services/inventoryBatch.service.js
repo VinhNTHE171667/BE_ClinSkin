@@ -61,7 +61,7 @@ class InventoryBatchService {
     }
   }
 
-  async getNearestExpiryBatch(productId, quantity) {
+  async getNearestExpiryBatch(productId, requiredQuantity) {
     const batches = await InventoryBatch.find({
       productId: productId,
       remainingQuantity: { $gt: 0 },
@@ -74,10 +74,10 @@ class InventoryBatchService {
       result.push(batch);
       total += batch.remainingQuantity;
     }
-    
+
     if (total < requiredQuantity) {
       throw new Error(
-        `Not enough stock available for product ${productId}. Required: ${quantity}, Available: ${total}`
+        `Not enough stock available for product ${productId}. Required: ${requiredQuantity}, Available: ${total}`
       );
     }
 
