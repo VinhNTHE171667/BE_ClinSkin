@@ -1,7 +1,7 @@
-import InventoryBatch from '../models/inventoryBatch.model.js';
-import Product from '../models/product.js';
-import Counter from '../models/counter.model.js';
-import mongoose from 'mongoose';
+import InventoryBatch from "../models/inventoryBatch.model.js";
+import Product from "../models/product.js";
+import Counter from "../models/counter.model.js";
+import mongoose from "mongoose";
 
 class InventoryBatchService {
   async createBatch(batchData) {
@@ -14,10 +14,9 @@ class InventoryBatchService {
 
       const newBatch = await InventoryBatch.create(batchData);
 
-      await Product.findByIdAndUpdate(
-        batchData.productId,
-        { $inc: { currentStock: batchData.quantity } }
-      );
+      await Product.findByIdAndUpdate(batchData.productId, {
+        $inc: { currentStock: batchData.quantity },
+      });
 
       return newBatch;
     } catch (error) {
@@ -29,24 +28,24 @@ class InventoryBatchService {
     try {
       const batch = await InventoryBatch.findOne({ batchNumber });
       if (!batch) {
-        throw new Error('Inventory batch not found');
+        throw new Error("Inventory batch not found");
       }
 
       if (newQuantity !== undefined) {
         const quantityChange = newQuantity - batch.quantity;
-        
+
         let newRemainingQuantity = batch.remainingQuantity + quantityChange;
-        
-        const remainingQuantityChange = newRemainingQuantity - batch.remainingQuantity;
+
+        const remainingQuantityChange =
+          newRemainingQuantity - batch.remainingQuantity;
 
         batch.quantity = newQuantity;
         batch.remainingQuantity = newRemainingQuantity;
 
         if (remainingQuantityChange !== 0) {
-          await Product.findByIdAndUpdate(
-            batch.productId,
-            { $inc: { currentStock: remainingQuantityChange } }
-          );
+          await Product.findByIdAndUpdate(batch.productId, {
+            $inc: { currentStock: remainingQuantityChange },
+          });
         }
       }
 
@@ -62,26 +61,50 @@ class InventoryBatchService {
     }
   }
 
+  async getNearestExpiryBatch(productId, quantity) {
+    const batches = await InventoryBatch.find({
+      productId: productId,
+      remainingQuantity: { $gt: 0 },
+    }).sort({ expiryDate: 1 });
+    const result = [];
+    let total = 0;
+
+    for (const batch of batches) {
+      if (total >= requiredQuantity) break;
+      result.push(batch);
+      total += batch.remainingQuantity;
+    }
+    
+    if (total < requiredQuantity) {
+      throw new Error(
+        `Not enough stock available for product ${productId}. Required: ${quantity}, Available: ${total}`
+      );
+    }
+
+    return result;
+  }
+
   async deductQuantityFromBatch(batchNumber, quantity) {
     try {
       const batch = await InventoryBatch.findOne({ batchNumber });
       if (!batch) {
-        throw new Error('Inventory batch not found');
+        throw new Error("Inventory batch not found");
       }
 
       if (batch.remainingQuantity < quantity) {
-        throw new Error(`Cannot deduct ${quantity} units. Only ${batch.remainingQuantity} units remaining in batch ${batchNumber}`);
+        throw new Error(
+          `Cannot deduct ${quantity} units. Only ${batch.remainingQuantity} units remaining in batch ${batchNumber}`
+        );
       }
 
       const newRemainingQuantity = batch.remainingQuantity - quantity;
-      
+
       batch.remainingQuantity = newRemainingQuantity;
       await batch.save();
 
-      await Product.findByIdAndUpdate(
-        batch.productId,
-        { $inc: { currentStock: -quantity } }
-      );
+      await Product.findByIdAndUpdate(batch.productId, {
+        $inc: { currentStock: -quantity },
+      });
 
       return batch;
     } catch (error) {
@@ -90,11 +113,15 @@ class InventoryBatchService {
   }
 
   async getAllBatches() {
-    return await InventoryBatch.find().populate('productId').populate('importer');
+    return await InventoryBatch.find()
+      .populate("productId")
+      .populate("importer");
   }
 
   async getBatchByNumber(batchNumber) {
-    return await InventoryBatch.findOne({ batchNumber }).populate('productId').populate('importer');
+    return await InventoryBatch.findOne({ batchNumber })
+      .populate("productId")
+      .populate("importer");
   }
 
   async getBatchesByProductId(productId) {
@@ -105,21 +132,20 @@ class InventoryBatchService {
     try {
       const batch = await InventoryBatch.findOne({ batchNumber });
       if (!batch) {
-        throw new Error('Inventory batch not found');
+        throw new Error("Inventory batch not found");
       }
 
       if (batch.remainingQuantity !== batch.quantity) {
-        throw new Error('Cannot delete batch');
+        throw new Error("Cannot delete batch");
       }
 
-      await Product.findByIdAndUpdate(
-        batch.productId,
-        { $inc: { currentStock: -batch.remainingQuantity } }
-      );
+      await Product.findByIdAndUpdate(batch.productId, {
+        $inc: { currentStock: -batch.remainingQuantity },
+      });
 
       await InventoryBatch.deleteOne({ batchNumber });
 
-      return { success: true, message: 'Inventory batch deleted successfully' };
+      return { success: true, message: "Inventory batch deleted successfully" };
     } catch (error) {
       throw error;
     }
@@ -129,10 +155,15 @@ class InventoryBatchService {
     return await InventoryBatch.countDocuments(filter);
   }
 
-  async getPaginatedBatches(filter = {}, skip = 0, limit = 10, sort = { createdAt: -1 }) {
+  async getPaginatedBatches(
+    filter = {},
+    skip = 0,
+    limit = 10,
+    sort = { createdAt: -1 }
+  ) {
     return await InventoryBatch.find(filter)
-      .populate('productId')
-      .populate('importer')
+      .populate("productId")
+      .populate("importer")
       .sort(sort)
       .skip(skip)
       .limit(limit);
