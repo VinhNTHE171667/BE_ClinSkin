@@ -65,6 +65,7 @@ class InventoryBatchService {
     const batches = await InventoryBatch.find({
       productId: productId,
       remainingQuantity: { $gt: 0 },
+      expiryDate: { $gte: new Date() },
     }).sort({ expiryDate: 1 });
     const result = [];
     let total = 0;
@@ -81,7 +82,7 @@ class InventoryBatchService {
       );
     }
 
-    return result;
+    return {items: result, total};
   }
 
   async deductQuantityFromBatch(batchNumber, quantity) {

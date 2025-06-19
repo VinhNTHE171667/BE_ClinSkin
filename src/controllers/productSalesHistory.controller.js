@@ -1,4 +1,5 @@
 import Order from "../models/order.js";
+import Product from "../models/product.js";
 import inventoryBatchService from "../services/inventoryBatch.service.js";
 import { StatusCodes } from 'http-status-codes';
 
@@ -15,7 +16,7 @@ export const getBatchItemsByOrderId = async (req, res) => {
         }
         const batchList = await Promise.all(
             order.items.map(async (item) => ({
-                productId: item.pid,
+                product: await Product.findById(item.pid, 'name mainImage currentStock').populate('brandId').populate('categories', 'name'),
                 totalQuantity: item.quantity,
                 price: item.price,
                 batchItems: await inventoryBatchService.getNearestExpiryBatch(item.pid, item.quantity),
