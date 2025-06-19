@@ -7,7 +7,7 @@ import { StatusCodes } from 'http-status-codes';
 export const getBatchItemsByOrderId = async (req, res) => {
     const { orderId } = req.params;
     try {
-        const order = await Order.findById(orderId);
+        const order = await Order.findById(orderId).populate('userId', 'name email phone');
         if (!order) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 success: false,
@@ -25,6 +25,19 @@ export const getBatchItemsByOrderId = async (req, res) => {
         return res.status(StatusCodes.OK).json({
             success: true,
             message: "Lấy danh sách lô hàng thành công",
+            order: {
+                id: order._id,
+                user: {
+                    name: order.userId.name,
+                    email: order.userId.email,
+                    phone: order.userId.phone,
+                },
+                totalAmount: order.totalAmount,
+                status: order.status,
+                note: order.note,
+                paymentMethod: order.paymentMethod,
+                address: order.address,
+            },
             data: batchList,
         });
     } catch (error) {
@@ -34,4 +47,8 @@ export const getBatchItemsByOrderId = async (req, res) => {
             message: error.message,
         });
     }
+}
+
+export const createSalesHistory = async (req, res) => {
+    
 }
