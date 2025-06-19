@@ -1,5 +1,5 @@
 import Review from "../models/review.js";
-
+import User from "../models/user.model.js";
 export const getReview = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -7,11 +7,13 @@ export const getReview = async (req, res) => {
     const content = req.query.content || "";
 
     const filter = content
-      ? { content: { $regex: content, $options: "i" } } 
+      ? { comment: { $regex: content, $options: "i" } }
       : {};
 
     const totalItems = await Review.countDocuments(filter);
     const reviews = await Review.find(filter)
+      .populate("productId", "name") 
+      .populate("userId", "name")    
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .sort({ createdAt: -1 });
