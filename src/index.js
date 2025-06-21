@@ -6,6 +6,7 @@ import cors from "cors";
 import connectDabase from "./configs/database.js";
 import adminRoutes from "./routes/admins/index.js";
 import reviewRoutes from "./routes/review/review-route.js";
+import morgan from "morgan";
 import staffRoutes from "./routes/staffs/index.js";
 
 dotenv.config();
@@ -16,7 +17,7 @@ const app = express();
 const server = http.createServer(app);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
+app.use(morgan("dev"));
 app.use(
   cors({
     origin: process.env.FRONT_END_URL,

@@ -34,6 +34,7 @@ export const getAllBrand = async (req, res) => {
                     totalPage: Math.ceil(total / limitNumber),
                     totalItems: total,
                     pageSize: limitNumber,
+                    hasMore: skip + limitNumber < total,
                 };
             }
             return res.status(200).json(response);
