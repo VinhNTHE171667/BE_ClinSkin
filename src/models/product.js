@@ -54,8 +54,8 @@ const productSchema = new mongoose.Schema({
   },
   tags: [{
     type: String,
-    lowercase: true,
-    trim: true
+    trim: true,
+    enum: ["NEW", "HOT"]
   }],
   isDeleted: {
     type: Boolean,
