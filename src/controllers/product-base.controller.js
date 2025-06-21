@@ -82,12 +82,6 @@ export const getProductHome = async (req, res) => {
                 { $limit: 10 },
             ]);
 
-            const testProducts = await Product.find({
-                tags: { $in: ["HOT"] },
-                isDeleted: false
-            });
-            console.log("Test products found:", testProducts.length);
-
             if (products.length > 0) {
                 productsByTag.push({
                     tag,
@@ -109,6 +103,47 @@ export const getProductHome = async (req, res) => {
         return res.status(500).json({
             success: false,
             data: [],
+            error: error.message,
+        });
+    }
+};
+
+export const getProductDetailBySlug = async (req, res) => {
+    try {
+        const { slug } = req.params;
+        
+        const product = await Product.aggregate([
+            {
+                $match: {
+                    slug,
+                    isDeleted: false,
+                },
+            },
+
+            ...brandAndCategoryInfo,
+        ]);
+
+        if (product.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Product not found",
+                data: {},
+            });
+        }
+        const finalPrice = calculateFinalPrice(product[0]);
+        return res.status(200).json({
+            success: true,
+            data: {
+                ...product[0],
+                finalPrice,
+            },
+        });
+    } catch (error) {
+        console.error("Get product detail error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            data: {},
             error: error.message,
         });
     }
