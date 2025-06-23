@@ -169,6 +169,78 @@ class InventoryBatchService {
       .skip(skip)
       .limit(limit);
   }
+
+  async getProductsWithNearExpiryBatches(daysUntilExpiry = 30, page = 1, pageSize = 10) {
+    try {
+      const pageNumber = parseInt(page) || 1;
+      const limitNumber = parseInt(pageSize) || 10;
+      const skip = (pageNumber - 1) * limitNumber;
+
+      const currentDate = new Date();
+      const expiryThreshold = new Date();
+      expiryThreshold.setDate(currentDate.getDate() + parseInt(daysUntilExpiry));
+
+      const nearExpiryBatches = await InventoryBatch.find({
+        expiryDate: { 
+          $gte: currentDate, 
+          $lte: expiryThreshold 
+        },
+        remainingQuantity: { $gt: 0 }
+      })
+      .populate({
+        path: 'productId',
+        select: 'name mainImage currentStock price'
+      })
+      .sort({ expiryDate: 1 })
+      .lean();
+
+      const productGroups = {};
+      
+      nearExpiryBatches.forEach(batch => {
+        const productId = batch.productId._id.toString();
+        
+        if (!productGroups[productId]) {
+          productGroups[productId] = {
+            name: batch.productId.name,
+            currentStock: batch.productId.currentStock,
+            mainImage: batch.productId.mainImage,
+            price: batch.productId.price,
+            nearExpiryQuantity: 0,
+            nearExpiryDate: batch.expiryDate,
+            nearExpiryBatches: []
+          };
+        }
+
+        productGroups[productId].nearExpiryQuantity += batch.remainingQuantity;
+
+        productGroups[productId].nearExpiryBatches.push({
+          batchId: batch._id,
+          batchNumber: batch.batchNumber,
+          expiryDate: batch.expiryDate,
+          remainingQuantity: batch.remainingQuantity,
+          costPrice: batch.costPrice
+        });
+      });
+
+      const productsArray = Object.values(productGroups);
+
+      const total = productsArray.length;
+      const paginatedProducts = productsArray.slice(skip, skip + limitNumber);
+
+      return {
+        products: paginatedProducts,
+        pagination: {
+          page: pageNumber,
+          totalPage: Math.ceil(total / limitNumber),
+          totalItems: total,
+          pageSize: limitNumber,
+          hasMore: skip + limitNumber < total
+        }
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export default new InventoryBatchService();

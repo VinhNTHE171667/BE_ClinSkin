@@ -13,6 +13,7 @@ import brandRoutes from "./brand.admin-route.js";
 import userRoutes from "./user.admin-route.js";
 import inventoryBatchRoutes from "./inventoryBatch.routes.js";
 import salesHistoryRouters from "./sales-history.admin-route.js";
+import dashboradRoutes from "./dashborad.admin-route.js";
 
 const router = express.Router();
 
@@ -40,6 +41,12 @@ router.use(
     "/sales-history",
     authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
     salesHistoryRouters
+);
+
+router.use(
+    "/dashboard",
+    authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+    dashboradRoutes
 );
 
 export default router;
