@@ -57,6 +57,15 @@ const productSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   }],
+  totalRating: {
+    type: Number,
+    default: 0
+  },
+  ratingCount: {
+    type: Number,
+    default: 0
+  },
+
   isDeleted: {
     type: Boolean,
     default: false
