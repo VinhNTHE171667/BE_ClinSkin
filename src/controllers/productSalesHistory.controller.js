@@ -18,6 +18,12 @@ export const getBatchItemsByOrderId = async (req, res) => {
             order.items.map(async (item) => {
                 const product = await Product.findById(item.pid, 'name mainImage currentStock').populate('brandId').populate('categories', 'name');
                 const batchItems = await inventoryBatchService.getNearestExpiryBatch(item.pid, item.quantity);
+                if (!batchItems.success) {
+                    return res.status(StatusCodes.BAD_REQUEST).json({
+                        success: false,
+                        message: batchItems.message,
+                    })
+                }
                 return {
                     product,
                     totalQuantity: item.quantity,
