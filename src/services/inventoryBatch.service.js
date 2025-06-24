@@ -77,12 +77,17 @@ class InventoryBatchService {
     }
 
     if (total < requiredQuantity) {
-      throw new Error(
-        `Not enough stock available for product ${productId}. Required: ${requiredQuantity}, Available: ${total}`
-      );
+      return {
+        success: false,
+        message: `Not enough stock available. Required: ${requiredQuantity}, Available: ${total}`,
+      };
     }
 
-    return {items: result, total};
+    return {
+      success: true,
+      items: result,
+      total
+    };
   }
 
   async deductQuantityFromBatch(batchNumber, quantity) {
