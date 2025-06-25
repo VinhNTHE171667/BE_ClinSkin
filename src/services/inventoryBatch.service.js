@@ -1,7 +1,6 @@
 import InventoryBatch from "../models/inventoryBatch.model.js";
 import Product from "../models/product.js";
 import Counter from "../models/counter.model.js";
-import mongoose from "mongoose";
 
 class InventoryBatchService {
   async createBatch(batchData) {
