@@ -326,3 +326,12 @@ export const getAccountAdmin = async (req, res) => {
     });
   }
 };
+
+export const googleCallback = async (req, res) => {
+  try {
+    const accessToken = generateToken(req.user);
+    return res.redirect(`${process.env.FRONT_END_URL}?token=${accessToken}`);
+  } catch (error) {
+    return res.redirect(`${process.env.FRONT_END_URL}/auth?error=server_error`);
+  }
+};
