@@ -246,33 +246,29 @@ class InventoryBatchService {
     }
   }
 
-  async getBatchStatistics(month, year, daysUntilExpiry = 30) {
+  async getBatchStatistics(daysUntilExpiry = 30) {
     try {
       const currentDate = new Date();
-      
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59, 999);
-
       const expiryThreshold = new Date();
       expiryThreshold.setDate(currentDate.getDate() + parseInt(daysUntilExpiry));
 
       const [
-        monthlyResult,
+        totalInventoryResult,
         nearExpiryResult,
         expiredResult
       ] = await Promise.all([
         InventoryBatch.aggregate([
           {
             $match: {
-              createdAt: { $gte: startDate, $lte: endDate }
+              remainingQuantity: { $gt: 0 }
             }
           },
           {
             $group: {
               _id: null,
               totalBatches: { $sum: 1 },
-              totalQuantity: { $sum: "$quantity" },
-              totalValue: { $sum: { $multiply: ["$quantity", "$costPrice"] } }
+              totalQuantity: { $sum: "$remainingQuantity" },
+              totalValue: { $sum: { $multiply: ["$remainingQuantity", "$costPrice"] } }
             }
           }
         ]),
@@ -313,12 +309,10 @@ class InventoryBatchService {
       ]);
 
       return {
-        monthly: {
-          month,
-          year,
-          totalBatches: monthlyResult[0]?.totalBatches || 0,
-          totalQuantity: monthlyResult[0]?.totalQuantity || 0,
-          totalValue: monthlyResult[0]?.totalValue || 0
+        totalInventory: {
+          totalBatches: totalInventoryResult[0]?.totalBatches || 0,
+          totalQuantity: totalInventoryResult[0]?.totalQuantity || 0,
+          totalValue: totalInventoryResult[0]?.totalValue || 0
         },
         nearExpiry: {
           daysUntilExpiry,
