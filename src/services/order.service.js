@@ -27,6 +27,24 @@ class OrderService {
                                     0
                                 ]
                             }
+                        },
+                        totalCompletedAmount: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ["$status", "delivered"] },
+                                    "$totalAmount",
+                                    0
+                                ]
+                            }
+                        },
+                        totalPendingAmount: {
+                            $sum: {
+                                $cond: [
+                                    { $in: ["$status", ["pending", "confirmed", "shipping"]] },
+                                    "$totalAmount",
+                                    0
+                                ]
+                            }
                         }
                     }
                 },
@@ -35,6 +53,8 @@ class OrderService {
                         _id: 0,
                         totalOrders: 1,
                         completedOrders: 1,
+                        totalCompletedAmount: 1,
+                        totalPendingAmount: 1,
                         month: month,
                         year: year
                     }
@@ -45,6 +65,8 @@ class OrderService {
                 return {
                     totalOrders: 0,
                     completedOrders: 0,
+                    totalCompletedAmount: 0,
+                    totalPendingAmount: 0,
                     month: month,
                     year: year
                 };
