@@ -148,3 +148,62 @@ export const getProductDetailBySlug = async (req, res) => {
         });
     }
 };
+
+export const getAllProductByUser = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 15;
+    const sortField = req.query.sortField || "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+
+    const aggregationPipeline = [
+      { $match: { isDeleted: false } },
+
+      ...brandAndCategoryInfo,
+
+      {
+        $sort: {
+          [sortField]: sortOrder,
+          _id: 1,
+        },
+      },
+
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $skip: (page - 1) * pageSize }, { $limit: pageSize }],
+        },
+      },
+    ];
+
+    const [result] = await Product.aggregate(aggregationPipeline);
+
+    const total = result.metadata[0]?.total || 0;
+    const products = result.data;
+
+    return res.status(200).json({
+      success: true,
+      data:
+        products && products.length > 0
+          ? products.map((p) => ({
+              ...p,
+              finalPrice: calculateFinalPrice(p),
+            }))
+          : [],
+      pagination: {
+        page,
+        pageSize,
+        totalPage: Math.ceil(total / pageSize),
+        totalItems: total,
+      },
+    });
+  } catch (error) {
+    console.error("Get products error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      data: [],
+      error: error.message,
+    });
+  }
+};
