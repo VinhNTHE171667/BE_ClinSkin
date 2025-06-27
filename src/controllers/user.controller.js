@@ -1,4 +1,5 @@
 import User from "../models/user.model.js";
+import { uploadImage, deleteImage } from "../ultis/cloudinary.js";
 
 export const getAllUser = async (req, res) => {
   try {
@@ -63,17 +64,32 @@ export const updateUser = async (req, res) => {
       });
     }
 
+    // Cập nhật thông tin cơ bản
     if (name) user.name = name;
     if (email) user.email = email;
-    if (avatar) user.avatar = avatar;
     if (isActive !== undefined) user.isActive = isActive;
 
-    await user.save();
+    // Nếu có avatar mới (base64), upload lên Cloudinary
+    if (avatar && avatar.startsWith("data:image")) {
+      // Nếu người dùng đã có avatar cũ thì xóa trên Cloudinary
+      if (user.avatar?.publicId) {
+        await deleteImage(user.avatar.publicId);
+      }
+      const uploaded = await uploadImage(avatar, "avatar");
+
+      console.log(uploaded);
+      user.avatar = {
+        publicId: uploaded.public_id,
+        url: uploaded.url,
+      };
+    }
+
+    const savedUser = await user.save();
 
     res.status(200).json({
       success: true,
       message: "Cập nhật thông tin người dùng thành công",
-      data: user,
+      data: savedUser,
     });
   } catch (error) {
     console.error("Error in updateUser:", error);
@@ -84,6 +100,7 @@ export const updateUser = async (req, res) => {
     });
   }
 };
+
 
 export const deleteUser = async (req, res) => {
   try {
