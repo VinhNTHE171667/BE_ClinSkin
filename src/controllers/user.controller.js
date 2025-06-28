@@ -1,4 +1,5 @@
 import User from "../models/user.model.js";
+import { uploadImage, deleteImage } from "../ultis/cloudinary.js";
 
 export const getAllUser = async (req, res) => {
   try {
@@ -53,7 +54,7 @@ export const getAllUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, avatar, isActive } = req.body;
+    const { name, email, phone, avatar, isActive, address } = req.body;
 
     const user = await User.findById(id).select("-password -__v");
     if (!user) {
@@ -63,17 +64,46 @@ export const updateUser = async (req, res) => {
       });
     }
 
+    // Cập nhật thông tin cơ bản
     if (name) user.name = name;
     if (email) user.email = email;
-    if (avatar) user.avatar = avatar;
+    if (phone) user.phone = phone;
     if (isActive !== undefined) user.isActive = isActive;
 
-    await user.save();
+    // Cập nhật địa chỉ nếu có
+    if (address && typeof address === "object") {
+      user.address = {
+        province: address.province || user.address?.province,
+        district: address.district || user.address?.district,
+        ward: address.ward || user.address?.ward,
+        detail: address.detail || user.address?.detail,
+      };
+    }
+
+    // Xử lý avatar
+    if (avatar) {
+      if (typeof avatar === "string" && avatar.startsWith("data:image")) {
+        // Nếu có avatar mới (base64), upload lên Cloudinary
+        if (user.avatar?.publicId) {
+          await deleteImage(user.avatar.publicId);
+        }
+        const uploaded = await uploadImage(avatar, "avatar");
+        user.avatar = {
+          publicId: uploaded.public_id,
+          url: uploaded.url,
+        };
+      } else if (typeof avatar === "object" && avatar.url && avatar.publicId) {
+        // Giữ nguyên avatar cũ nếu không thay đổi
+        user.avatar = avatar;
+      }
+    }
+
+    const savedUser = await user.save();
 
     res.status(200).json({
       success: true,
       message: "Cập nhật thông tin người dùng thành công",
-      data: user,
+      data: savedUser,
     });
   } catch (error) {
     console.error("Error in updateUser:", error);
@@ -84,6 +114,8 @@ export const updateUser = async (req, res) => {
     });
   }
 };
+
+
 
 export const deleteUser = async (req, res) => {
   try {

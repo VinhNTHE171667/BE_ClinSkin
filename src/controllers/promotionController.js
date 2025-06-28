@@ -74,16 +74,57 @@ export const getPromotionById = async (req, res) => {
   }
 };
 
-
 export const createPromotion = async (req, res) => {
   try {
-    const newPromotion = new Promotion(req.body);
+    const { name, description, startDate, endDate, products } = req.body;
+
+    const now = new Date();
+
+    // Tìm tất cả khuyến mãi chưa hết hạn và đang hoạt động
+    const activePromotions = await Promotion.find({
+      endDate: { $gte: now },
+      isActive: true
+    });
+
+    // Lấy danh sách pid từ body gửi lên
+    const newProductIds = products.map(p => p.pid.toString());
+
+    // Kiểm tra xung đột sản phẩm
+    const conflictProductIds = [];
+
+    for (const promo of activePromotions) {
+      for (const p of promo.products) {
+        if (newProductIds.includes(p.pid.toString())) {
+          conflictProductIds.push(p.pid.toString());
+        }
+      }
+    }
+
+    if (conflictProductIds.length > 0) {
+      return res.status(400).json({
+        message: 'Một số sản phẩm đã có khuyến mãi đang hoạt động.',
+        conflictProductIds
+      });
+    }
+
+    // Nếu không có xung đột => tạo mới
+    const newPromotion = new Promotion({
+      name,
+      description,
+      startDate,
+      endDate,
+      isActive: true,
+      products
+    });
+
     const saved = await newPromotion.save();
     res.status(201).json(saved);
   } catch (error) {
+    console.error('Lỗi khi tạo khuyến mãi:', error);
     res.status(400).json({ message: 'Lỗi khi tạo khuyến mãi', error });
   }
 };
+
 
 
 export const updatePromotion = async (req, res) => {

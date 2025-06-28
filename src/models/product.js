@@ -1,5 +1,3 @@
-// models/Product.js
-
 import mongoose from 'mongoose';
 import slugify from 'slugify';
 
@@ -56,8 +54,8 @@ const productSchema = new mongoose.Schema({
   },
   tags: [{
     type: String,
-    lowercase: true,
-    trim: true
+    trim: true,
+    enum: ["NEW", "HOT"]
   }],
   isDeleted: {
     type: Boolean,
@@ -71,7 +69,6 @@ const productSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate slug both for new documents and when updating
 productSchema.pre('save', function(next) {
   if (this.isModified('name')) {
     this.slug = slugify(this.name, { lower: true, locale: "vi", strict: true });
@@ -79,9 +76,7 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// Default query to exclude deleted products
 productSchema.pre(/^find/, function(next) {
-  // this refers to the current query
   if (!this.getQuery().hasOwnProperty('isDeleted')) {
     this.find({ isDeleted: false });
   }

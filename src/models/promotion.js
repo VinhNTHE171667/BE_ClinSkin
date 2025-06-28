@@ -1,4 +1,3 @@
-// models/Promotion.js
 
 import mongoose from 'mongoose';
 
