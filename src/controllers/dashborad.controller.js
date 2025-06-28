@@ -1,6 +1,8 @@
 import InventoryBatchService from "../services/inventoryBatch.service.js";
 import ProductSalesHistoryService from "../services/ProductSalesHistory.service.js";
 import OrderService from "../services/order.service.js";
+import UserService from "../services/user.service.js";
+import ReviewService from "../services/review.service.js";
 
 export const getProductsWithNearExpiryBatches = async (req, res) => {
     try {
@@ -35,7 +37,6 @@ export const getMonthlyStatistic = async (req, res) => {
     try {
         const { year, month } = req.query;
         
-        // Kiểm tra tham số đầu vào
         if (!year || !month) {
             return res.status(400).json({
                 success: false,
@@ -85,6 +86,59 @@ export const getMonthlyStatistic = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Có lỗi xảy ra khi lấy thống kê tháng",
+            error: error.message
+        });
+    }
+}
+// Lấy thống kê tổng quan về kho, người dùng và đánh giá
+export const getOverallStatistics = async (req, res) => {
+    try {
+        const { daysUntilExpiry } = req.query;
+        const daysParam = parseInt(daysUntilExpiry) || 30;
+
+        const [batchStats, userStats, reviewStats] = await Promise.all([
+            InventoryBatchService.getBatchStatistics(daysParam),
+            UserService.getUserStatistics(),
+            ReviewService.getReviewStatistics()
+        ]);
+
+        const combinedStats = {
+            inventory: {
+                totalBatches: batchStats.totalInventory.totalBatches,
+                totalQuantity: batchStats.totalInventory.totalQuantity,
+                totalValue: batchStats.totalInventory.totalValue,
+                nearExpiry: {
+                    daysUntilExpiry: batchStats.nearExpiry.daysUntilExpiry,
+                    totalBatches: batchStats.nearExpiry.totalBatches,
+                    totalQuantity: batchStats.nearExpiry.totalQuantity,
+                    totalValue: batchStats.nearExpiry.totalValue
+                },
+                expired: {
+                    totalBatches: batchStats.expired.totalBatches,
+                    totalQuantity: batchStats.expired.totalQuantity,
+                    totalValue: batchStats.expired.totalValue
+                }
+            },
+            users: {
+                totalUsers: userStats.totalUsers,
+                newUsersLast30Days: userStats.newUsersLast30Days
+            },
+            reviews: {
+                totalReviews: reviewStats.totalReviews,
+                averageRating: reviewStats.averageRating
+            }
+        };
+
+        return res.status(200).json({
+            success: true,
+            data: combinedStats
+        });
+
+    } catch (error) {
+        console.error('Error fetching overall statistics:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy thống kê tổng quan",
             error: error.message
         });
     }
