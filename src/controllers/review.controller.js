@@ -1,5 +1,4 @@
 import Review from "../models/review.js";
-import User from "../models/user.model.js";
 export const getReview = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -85,10 +84,8 @@ export const toggleDisplayReview = async (req, res) => {
     if (!review) {
       return res.status(404).json({ message: "Review không tồn tại" });
     }
-
     review.display = !review.display;
     await review.save();
-
     res.status(200).json({ message: "Đã cập nhật trạng thái hiển thị", review });
   } catch (error) {
     res.status(500).json({ message: error.message });
