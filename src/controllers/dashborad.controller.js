@@ -143,3 +143,86 @@ export const getOverallStatistics = async (req, res) => {
         });
     }
 }
+
+// Lấy doanh thu theo ngày trong tháng
+export const getDailyRevenueInMonth = async (req, res) => {
+    try {
+        const { year, month } = req.params;
+        
+        const yearNum = parseInt(year);
+        const monthNum = parseInt(month);
+        
+        if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm và tháng không hợp lệ"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getDailyRevenueInMonth(yearNum, monthNum);
+        
+        return res.status(200).json({
+            success: true,
+            message: "Lấy doanh thu theo ngày thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy doanh thu theo ngày:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy doanh thu theo ngày",
+            error: error.message
+        });
+    }
+};
+
+// Lấy doanh thu theo tháng trong năm
+export const getMonthlyRevenueInYear = async (req, res) => {
+    try {
+        const { year } = req.params;
+        
+        const yearNum = parseInt(year);
+        
+        if (isNaN(yearNum)) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm không hợp lệ"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getMonthlyRevenueInYear(yearNum);
+        
+        return res.status(200).json({
+            success: true,
+            message: "Lấy doanh thu theo tháng thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy doanh thu theo tháng:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy doanh thu theo tháng",
+            error: error.message
+        });
+    }
+};
+
+// Lấy doanh thu 5 năm gần nhất
+export const getYearlyRevenueLastFiveYears = async (req, res) => {
+    try {
+        const result = await ProductSalesHistoryService.getYearlyRevenueLastFiveYears();
+        
+        return res.status(200).json({
+            success: true,
+            message: "Lấy doanh thu 5 năm gần nhất thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy doanh thu 5 năm gần nhất:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy doanh thu 5 năm gần nhất",
+            error: error.message
+        });
+    }
+};
