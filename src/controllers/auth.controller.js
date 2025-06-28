@@ -5,6 +5,7 @@ import Otp from "../models/otp.model.js";
 import { generateOTP } from "../ultis/generateOTP.js";
 import { sendEmail } from "../configs/mail.js";
 import Admin from "../models/admin.model.js";
+import { uploadImage,deleteImage } from "../ultis/cloudinary.js";
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -288,6 +289,7 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
+
 export const getAccountAdmin = async (req, res) => {
   try {
     const adminDetails = await Admin.findById(req.admin._id).select(
@@ -335,3 +337,75 @@ export const googleCallback = async (req, res) => {
     return res.redirect(`${process.env.FRONT_END_URL}/auth?error=server_error`);
   }
 };
+export const updateProfileAdmin = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin._id); 
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy tài khoản admin",
+      });
+    }
+
+    const { name, newPassword, password: oldPassword } = req.body;
+    const avatar = req.file;
+
+    if (name && typeof name === "string" && name.trim().length > 0) {
+      admin.name = name.trim();
+    }
+
+    if (avatar) {
+      if (admin.avatar?.publicId) {
+        await deleteImage(admin.avatar.publicId);
+      }
+
+      const uploaded = await uploadImage(avatar.path, "clinskin/admins");
+
+      admin.avatar = {
+        url: uploaded.url,
+        publicId: uploaded.public_id,
+      };
+    }
+
+    if (oldPassword && newPassword) {
+      const isMatch = await bcrypt.compare(oldPassword, admin.password);
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Mật khẩu cũ không đúng",
+        });
+      }
+
+      admin.password = newPassword.trim();
+    }
+
+    await admin.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật thông tin thành công",
+      data: {
+        _id: admin._id,
+        name: admin.name,
+        username: admin.username,
+        avatar: admin.avatar,
+        role: admin.role,
+      },
+    });
+  } catch (error) {
+    console.error("Update Admin Profile Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi cập nhật thông tin admin",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+
+
+
