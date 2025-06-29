@@ -7,6 +7,14 @@ const itemSchema = new mongoose.Schema({
     ref: 'Product',
     required: true
   },
+  name: {
+    type: String,
+    required: true,
+  },
+  image: {
+    type: String,
+    default: "",
+  },
   quantity: {
     type: Number,
     required: true,
@@ -20,10 +28,36 @@ const itemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const addressSchema = new mongoose.Schema({
-  province: { type: String, required: true },
-  district: { type: String, required: true },
-  ward: { type: String, required: true },
-  detail: { type: String, required: true }
+  province: {
+    id: {
+      type: Number,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+  },
+  district: {
+    id: {
+      type: Number,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+  },
+  ward: {
+    id: {
+      type: Number,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+  },
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
@@ -32,7 +66,7 @@ const orderSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  items: {
+  products: {
     type: [itemSchema],
     required: true,
     validate: v => Array.isArray(v) && v.length > 0
@@ -40,6 +74,10 @@ const orderSchema = new mongoose.Schema({
   address: {
     type: addressSchema,
     required: true
+  },
+  addressDetail: {
+    type: String,
+    required: true,
   },
   totalAmount: {
     type: Number,

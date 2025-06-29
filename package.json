@@ -26,11 +26,8 @@
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.1",
-<<<<<<< HEAD
     "multer": "^2.0.1",
-=======
     "morgan": "^1.10.0",
->>>>>>> origin/main
     "nodemailer": "^7.0.3",
     "passport": "^0.7.0",
     "passport-google-oauth2": "^0.2.0",
