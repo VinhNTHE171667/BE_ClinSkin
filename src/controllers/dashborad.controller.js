@@ -309,3 +309,86 @@ export const getYearlyOrderStatsLastFiveYears = async (req, res) => {
         });
     }
 };
+
+// Lấy thống kê đánh giá theo ngày trong tháng
+export const getDailyReviewStatsInMonth = async (req, res) => {
+    try {
+        const { year, month } = req.params;
+        
+        const yearNum = parseInt(year);
+        const monthNum = parseInt(month);
+        
+        if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm và tháng không hợp lệ"
+            });
+        }
+
+        const result = await ReviewService.getDailyReviewStatsInMonth(yearNum, monthNum);
+        
+        return res.status(200).json({
+            success: true,
+            message: "Lấy thống kê đánh giá theo ngày thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê đánh giá theo ngày:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy thống kê đánh giá theo ngày",
+            error: error.message
+        });
+    }
+};
+
+// Lấy thống kê đánh giá theo tháng trong năm
+export const getMonthlyReviewStatsInYear = async (req, res) => {
+    try {
+        const { year } = req.params;
+        
+        const yearNum = parseInt(year);
+        
+        if (isNaN(yearNum)) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm không hợp lệ"
+            });
+        }
+
+        const result = await ReviewService.getMonthlyReviewStatsInYear(yearNum);
+        
+        return res.status(200).json({
+            success: true,
+            message: "Lấy thống kê đánh giá theo tháng thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê đánh giá theo tháng:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy thống kê đánh giá theo tháng",
+            error: error.message
+        });
+    }
+};
+
+// Lấy thống kê đánh giá 5 năm gần nhất
+export const getYearlyReviewStatsLastFiveYears = async (req, res) => {
+    try {
+        const result = await ReviewService.getYearlyReviewStatsLastFiveYears();
+        
+        return res.status(200).json({
+            success: true,
+            message: "Lấy thống kê đánh giá 5 năm gần nhất thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê đánh giá 5 năm gần nhất:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy thống kê đánh giá 5 năm gần nhất",
+            error: error.message
+        });
+    }
+};

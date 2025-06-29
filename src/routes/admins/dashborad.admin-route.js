@@ -8,7 +8,10 @@ import {
   getYearlyRevenueLastFiveYears,
   getDailyOrderStatsInMonth,
   getMonthlyOrderStatsInYear,
-  getYearlyOrderStatsLastFiveYears
+  getYearlyOrderStatsLastFiveYears,
+  getDailyReviewStatsInMonth,
+  getMonthlyReviewStatsInYear,
+  getYearlyReviewStatsLastFiveYears
 } from "../../controllers/dashborad.controller.js";
 
 const router = express.Router();
@@ -24,5 +27,9 @@ router.get("/revenue/yearly", getYearlyRevenueLastFiveYears);
 router.get("/orders/daily/:year/:month", getDailyOrderStatsInMonth);
 router.get("/orders/monthly/:year", getMonthlyOrderStatsInYear);
 router.get("/orders/yearly", getYearlyOrderStatsLastFiveYears);
+
+router.get("/reviews/daily/:year/:month", getDailyReviewStatsInMonth);
+router.get("/reviews/monthly/:year", getMonthlyReviewStatsInYear);
+router.get("/reviews/yearly", getYearlyReviewStatsLastFiveYears);
 
 export default router;
