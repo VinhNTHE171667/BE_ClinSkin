@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
 const addressSchema = new mongoose.Schema({
-    province: { type: String, required: true },
-    district: { type: String, required: true },
-    ward: { type: String, required: true },
+    province: { type: String },
+    district: { type: String },
+    ward: { type: String },
     detail: { type: String}
 }, { _id: false });
 
@@ -43,7 +43,6 @@ export const UserSchema = new mongoose.Schema(
         },
         address: {
             type: addressSchema,
-            required: true
         },
         isActive: {
             type: Boolean,
