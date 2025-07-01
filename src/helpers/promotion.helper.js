@@ -27,11 +27,8 @@ export const getPromotionProjectStage = () => ({
         images: 1,
         description: 1,
         price: 1,
-        enable: 1,
         tags: 1,
-        variants: 1,
         totalQuantity: 1,
-        capacity: 1,
         price: 1,
         isPromotion: 1,
         promotion: {
@@ -67,3 +64,43 @@ export const getPromotionProjectStage = () => ({
         },
     },
 });
+
+export const calulateFinalPricePipeline = {
+  $addFields: {
+    finalPrice: {
+      $cond: {
+        if: { $eq: [{ $type: "$promotion" }, "missing"] },
+        then: "$price",
+        else: {
+          $let: {
+            vars: {
+              discountAmount: {
+                $multiply: [
+                  "$price",
+                  { $divide: ["$promotion.discountPercentage", 100] },
+                ],
+              },
+            },
+            in: {
+              $subtract: [
+                "$price",
+                {
+                  $cond: {
+                    if: { $gt: ["$promotion.maxDiscountAmount", 0] },
+                    then: {
+                      $min: [
+                        "$$discountAmount",
+                        "$promotion.maxDiscountAmount",
+                      ],
+                    },
+                    else: "$$discountAmount",
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
+};
