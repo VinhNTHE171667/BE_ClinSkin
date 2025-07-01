@@ -22,10 +22,10 @@ const brandAndCategoryInfo = [
             from: "brands",
             localField: "brandId",
             foreignField: "_id",
-            as: "brandInfo",
+            as: "brand",
         },
     },
-    { $unwind: "$brandInfo" },
+    { $unwind: "$brand" },
     {
         $lookup: {
             from: "categories",
@@ -45,9 +45,9 @@ const projectFileds = {
         mainImage: 1,
         finalPrice: 1,
         brand: {
-            _id: "$brandInfo._id",
-            name: "$brandInfo.name",
-            slug: "$brandInfo.slug",
+            _id: "$brand._id",
+            name: "$brand.name",
+            slug: "$brand.slug",
         },
         categories: {
             $map: {
