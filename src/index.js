@@ -13,6 +13,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth2";
 import { googleCallback } from "./controllers/auth.controller.js";
 import { saveUser } from "./services/user.service.js";
+import User from "./models/user.model.js";
 
 dotenv.config();
 
