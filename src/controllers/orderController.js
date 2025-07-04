@@ -1,5 +1,6 @@
 import Order from '../models/order.js';
 import mongoose from 'mongoose';
+import { calculateOrderAmount, updateProductInventory, validateOrder } from '../services/order.service.js';
 
 export const getAllOrders = async (req, res) => {
   try {
@@ -53,16 +54,16 @@ export const getAllOrders = async (req, res) => {
     }
 
     if (startDate) {
-  query.createdAt = {
-    $gte: new Date(startDate)
-  };
-}
+      query.createdAt = {
+        $gte: new Date(startDate)
+      };
+    }
 
     // 📦 Query with filter, sort, paginate
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate('userId', 'name email')
-        .populate('items.pid', 'name price mainImage')
+        .populate('products.pid', 'name price mainImage')
         .sort(sortOption)
         .skip((pageNumber - 1) * pageSize)
         .limit(pageSize),
@@ -93,7 +94,7 @@ export const getOrderById = async (req, res) => {
 
     const order = await Order.findById(id)
       .populate('userId', 'name email')
-      .populate('items.pid', 'name price');
+      .populate('products.pid', 'name price');
 
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
@@ -103,5 +104,68 @@ export const getOrderById = async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: 'Lỗi khi lấy chi tiết đơn hàng', detail: err.message });
+  }
+};
+
+const updatePromotionAfterOrder = async (products) => {
+  console.log("Cập nhật thông tin khuyến mãi sau khi đặt hàng");
+};
+
+export const createOrderCod = async (req, res) => {
+  try {
+    const user = req.user;
+    console.log("userId", user);
+
+    const { name, products, phone, address, addressDetail, note } =
+      req.body;
+
+    // Validate đơn hàng
+    const validationErrors = await validateOrder(products);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: validationErrors[0] || "Đơn hàng không hợp lệ",
+        errors: validationErrors,
+      });
+    }
+
+    // Tính toán giá và xử lý sản phẩm
+    const { totalAmount, products: processedProducts } =
+      await calculateOrderAmount(products);
+
+    // Tạo đơn hàng mới
+    const newOrder = new Order({
+      userId: user._id,
+      name,
+      products: processedProducts,
+      phone,
+      address: address,
+      addressDetail,
+      paymentMethod: "cod",
+      totalAmount,
+      note: note || "KHÔNG CÓ",
+    });
+
+    // Lưu đơn hàng
+    await newOrder.save();
+
+    // Cập nhật số lượng sản phẩm
+    await updateProductInventory(processedProducts);
+
+    // Cập nhật thông tin khuyến mãi
+    await updatePromotionAfterOrder(processedProducts);
+
+    res.status(201).json({
+      success: true,
+      message: "Đặt hàng thành công",
+      data: newOrder,
+    });
+  } catch (error) {
+    console.log("Error create order COD", error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi đặt hàng",
+      error: error.message,
+    });
   }
 };

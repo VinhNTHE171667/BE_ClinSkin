@@ -27,3 +27,17 @@ export const buildCategoryTree = (categories, parentId = null, level = 0) => {
 
     return categoryTree;
 };
+
+export const getCategoryProjectStage = () => ({
+    categories: {
+        $map: {
+            input: "$categoriesInfo",
+            as: "cat",
+            in: {
+                _id: "$$cat._id",
+                name: "$$cat.name",
+                slug: "$$cat.slug",
+            },
+        },
+    },
+});

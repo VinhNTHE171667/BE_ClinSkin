@@ -14,6 +14,7 @@ import {
 } from "../../controllers/auth.controller.js";
 import { validateMiddleWare } from "../../middleware/validate.middleware.js";
 import { authMiddlewareUser } from "../../middleware/auth.middleware.js";
+import { updateUser } from "../../controllers/user.controller.js";
 
 
 const router = express.Router();
@@ -32,5 +33,6 @@ router.post(
 
 
 router.get("/account", authMiddlewareUser, getAccountUser);
+router.put("/updateProfile/:id", authMiddlewareUser, updateUser);
 
 export default router;

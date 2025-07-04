@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const addressSchema = new mongoose.Schema({
+    province: { type: String },
+    district: { type: String },
+    ward: { type: String },
+    detail: { type: String}
+}, { _id: false });
+
 export const UserSchema = new mongoose.Schema(
     {
         googleId: {
@@ -28,6 +35,14 @@ export const UserSchema = new mongoose.Schema(
                 type: String,
                 default: "",
             },
+        },
+        phone: {
+            type: String,
+            unique: true,
+            match: [/^[0-9]{10}$/, "Số điện thoại phải gồm đúng 10 chữ số (0–9), không chứa chữ hoặc ký tự đặc biệt."],
+        },
+        address: {
+            type: addressSchema,
         },
         isActive: {
             type: Boolean,

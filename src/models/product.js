@@ -55,8 +55,8 @@ const productSchema = new mongoose.Schema({
   },
   tags: [{
     type: String,
-    lowercase: true,
-    trim: true
+    trim: true,
+    enum: ["NEW", "HOT"]
   }],
   totalRating: {
     type: Number,
