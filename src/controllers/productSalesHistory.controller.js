@@ -15,12 +15,22 @@ export const getBatchItemsByOrderId = async (req, res) => {
             });
         }
         const batchList = await Promise.all(
-            order.items.map(async (item) => ({
-                product: await Product.findById(item.pid, 'name mainImage currentStock').populate('brandId').populate('categories', 'name'),
-                totalQuantity: item.quantity,
-                price: item.price,
-                batchItems: await inventoryBatchService.getNearestExpiryBatch(item.pid, item.quantity),
-            }))
+            order.items.map(async (item) => {
+                const product = await Product.findById(item.pid, 'name mainImage currentStock').populate('brandId').populate('categories', 'name');
+                const batchItems = await inventoryBatchService.getNearestExpiryBatch(item.pid, item.quantity);
+                if (!batchItems.success) {
+                    return res.status(StatusCodes.BAD_REQUEST).json({
+                        success: false,
+                        message: batchItems.message,
+                    })
+                }
+                return {
+                    product,
+                    totalQuantity: item.quantity,
+                    price: item.price,
+                    batchItems,
+                }
+            })
         );
         return res.status(StatusCodes.OK).json({
             success: true,
