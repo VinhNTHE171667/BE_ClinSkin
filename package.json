@@ -37,6 +37,7 @@
     "wdp301_prj": "file:"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "nodemon": "^3.1.10"
   }
 }
