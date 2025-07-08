@@ -1,11 +1,17 @@
 
 import mongoose from 'mongoose';
+import slugify from 'slugify';
 
 const promotionSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
     trim: true
+  },
+    slug: {
+    type: String,
+    unique: true,
+    lowercase: true
   },
   description: {
     type: String,
@@ -40,6 +46,14 @@ const promotionSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+promotionSchema.pre('save', function(next) {
+  if (this.isModified('name')) {
+    this.slug = slugify(this.name, { lower: true, locale: "vi", strict: true });
+  }
+  next();
+});
+
 
 const Promotion = mongoose.model('Promotion', promotionSchema);
 export default Promotion;

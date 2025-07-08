@@ -1,5 +1,7 @@
 import Promotion from '../models/promotion.js';
-
+import mongoose from "mongoose";
+// import Product from "../models/Product.js";
+import { calculateFinalPrice, calulateFinalPricePipeline, getPromotionProjectStage } from "../helpers/promotion.helper.js";
 export const getAllPromotions = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -149,3 +151,167 @@ export const deletePromotion = async (req, res) => {
     res.status(500).json({ message: 'Lỗi khi xóa khuyến mãi', error });
   }
 };
+
+export const getPromotionalProducts = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      isActive = 'true',
+      name = '',
+      startDate,
+      endDate,
+      discountMin,
+      discountMax
+    } = req.query;
+
+    const currentDate = new Date();
+
+    const filter = {
+      isActive: isActive === 'true',
+      startDate: { $lte: currentDate },
+      endDate: { $gte: currentDate }
+    };
+
+    // Optional: filter by custom start-end date
+    if (startDate && endDate) {
+      filter.startDate = { $gte: new Date(startDate) };
+      filter.endDate = { $lte: new Date(endDate) };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const promotions = await Promotion.find(filter)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate({
+        path: 'products.pid',
+        match: {
+          name: { $regex: name, $options: 'i' }
+        }
+      })
+      .lean();
+
+    // 🔎 Filter discount
+    const min = discountMin ? parseFloat(discountMin) : 0;
+    const max = discountMax ? parseFloat(discountMax) : Infinity;
+
+    const result = promotions.map(promo => {
+      const filteredProducts = promo.products.filter(p =>
+        p.pid !== null &&
+        p.discount >= min &&
+        p.discount <= max
+      );
+
+      return {
+        _id: promo._id,
+        name: promo.name,
+        description: promo.description,
+        startDate: promo.startDate,
+        endDate: promo.endDate,
+        isActive: promo.isActive,
+        createdAt: promo.createdAt,
+        updatedAt: promo.updatedAt,
+        products: filteredProducts.map(p => ({
+          product: p.pid,
+          discount: p.discount
+        }))
+      };
+    }).filter(promo => promo.products.length > 0);
+
+    const totalCount = await Promotion.countDocuments(filter);
+
+    res.json({
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(totalCount / limit),
+      totalItems: totalCount,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Error getting promotional products:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getActivePromotions = async (req, res) => {
+  try {
+    const currentDate = new Date();
+    const promotions = await Promotion.find({
+      isActive: true,
+      startDate: { $lte: currentDate },
+      endDate: { $gte: currentDate },
+    }).select("_id name slug");
+
+    res.json(promotions);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getListFromPromotion = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const {
+      name = "",
+      discountMin = 0,
+      discountMax = 100,
+      minPrice = 0,
+      maxPrice = Number.MAX_SAFE_INTEGER,
+    } = req.query;
+
+    const promotion = await Promotion.findOne({ slug }).populate({
+      path: "products.pid",
+    });
+
+    if (!promotion) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy khuyến mãi",
+        data: [],
+      });
+    }
+
+    if (
+      name &&
+      !promotion.name.toLowerCase().includes(name.toString().toLowerCase())
+    ) {
+      return res.status(200).json({
+        success: true,
+        message: "Không tìm thấy khuyến mãi phù hợp với tên",
+        data: null,
+      });
+    }
+
+    const filteredProducts = promotion.products.filter((item) => {
+      const discount = Number(item.discount);
+      const price = item.pid?.price || 0;
+      const priceAfterDiscount = price - (price * discount) / 100;
+
+      return (
+        discount >= discountMin &&
+        discount <= discountMax &&
+        priceAfterDiscount >= minPrice &&
+        priceAfterDiscount <= maxPrice
+      );
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Thành công",
+      data: {
+        ...promotion.toObject(),
+        products: filteredProducts,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ",
+      data: [],
+      error: error.message,
+    });
+  }
+};
+
+
