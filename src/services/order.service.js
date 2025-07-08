@@ -1,6 +1,6 @@
 import Order from "../models/order.js";
 import Product from "../models/product.js";
-import Promotion from "../models/promotion.js";
+import Promotion from "../models/promotion.model.js";
 
 class OrderService {
     async getMonthlyOrderStats(year, month) {
