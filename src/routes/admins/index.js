@@ -20,7 +20,7 @@ const router = express.Router();
 
 router.use("/auth", authRoutes);
 router.use("/product", productRoutes);
-router.use("/promotion", promotionRoutes);
+router.use("/promotions", promotionRoutes);
 router.use(
   "/categories",
   authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
