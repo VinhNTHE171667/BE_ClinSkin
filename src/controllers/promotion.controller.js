@@ -351,10 +351,13 @@ export const getListFromPromotion = async (req, res) => {
       maxPrice = Number.MAX_SAFE_INTEGER,
     } = req.query;
 
+    // Tìm promotion và populate sản phẩm
     const promotion = await Promotion.findOne({ slug }).populate({
-      path: "products.pid",
+      path: "products.product",
+      model: "Product"
     });
 
+    // Không tìm thấy promotion
     if (!promotion) {
       return res.status(404).json({
         success: false,
@@ -363,6 +366,7 @@ export const getListFromPromotion = async (req, res) => {
       });
     }
 
+    // Lọc theo tên khuyến mãi nếu cần
     if (
       name &&
       !promotion.name.toLowerCase().includes(name.toString().toLowerCase())
@@ -374,9 +378,15 @@ export const getListFromPromotion = async (req, res) => {
       });
     }
 
+    // Lọc sản phẩm theo điều kiện
     const filteredProducts = promotion.products.filter((item) => {
-      const discount = Number(item.discount);
-      const price = item.pid?.price || 0;
+      const discount = Number(item.discountPercentage || 0);
+      const product = item.product;
+
+      // Nếu product null (do populate thất bại), bỏ qua
+      if (!product) return false;
+
+      const price = product.price || 0;
       const priceAfterDiscount = price - (price * discount) / 100;
 
       return (
