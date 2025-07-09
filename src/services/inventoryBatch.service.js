@@ -1,7 +1,6 @@
 import InventoryBatch from "../models/inventoryBatch.model.js";
 import Product from "../models/product.js";
 import Counter from "../models/counter.model.js";
-import mongoose from "mongoose";
 
 class InventoryBatchService {
   async createBatch(batchData) {
@@ -77,12 +76,17 @@ class InventoryBatchService {
     }
 
     if (total < requiredQuantity) {
-      throw new Error(
-        `Not enough stock available for product ${productId}. Required: ${requiredQuantity}, Available: ${total}`
-      );
+      return {
+        success: false,
+        message: `Not enough stock available. Required: ${requiredQuantity}, Available: ${total}`,
+      };
     }
 
-    return {items: result, total};
+    return {
+      success: true,
+      items: result,
+      total
+    };
   }
 
   async deductQuantityFromBatch(batchNumber, quantity) {
@@ -168,6 +172,163 @@ class InventoryBatchService {
       .sort(sort)
       .skip(skip)
       .limit(limit);
+  }
+
+  async getProductsWithNearExpiryBatches(daysUntilExpiry = 30, page = 1, pageSize = 10) {
+    try {
+      const pageNumber = parseInt(page) || 1;
+      const limitNumber = parseInt(pageSize) || 10;
+      const skip = (pageNumber - 1) * limitNumber;
+
+      const currentDate = new Date();
+      const expiryThreshold = new Date();
+      expiryThreshold.setDate(currentDate.getDate() + parseInt(daysUntilExpiry));
+
+      const nearExpiryBatches = await InventoryBatch.find({
+        expiryDate: { 
+          $gte: currentDate, 
+          $lte: expiryThreshold 
+        },
+        remainingQuantity: { $gt: 0 }
+      })
+      .populate({
+        path: 'productId',
+        select: 'name mainImage currentStock price'
+      })
+      .sort({ expiryDate: 1 })
+      .lean();
+
+      const productGroups = {};
+      
+      nearExpiryBatches.forEach(batch => {
+        const productId = batch.productId._id.toString();
+        
+        if (!productGroups[productId]) {
+          productGroups[productId] = {
+            name: batch.productId.name,
+            currentStock: batch.productId.currentStock,
+            mainImage: batch.productId.mainImage,
+            price: batch.productId.price,
+            nearExpiryQuantity: 0,
+            nearExpiryDate: batch.expiryDate,
+            nearExpiryBatches: []
+          };
+        }
+
+        productGroups[productId].nearExpiryQuantity += batch.remainingQuantity;
+
+        productGroups[productId].nearExpiryBatches.push({
+          batchId: batch._id,
+          batchNumber: batch.batchNumber,
+          expiryDate: batch.expiryDate,
+          remainingQuantity: batch.remainingQuantity,
+          costPrice: batch.costPrice
+        });
+      });
+
+      const productsArray = Object.values(productGroups);
+
+      const total = productsArray.length;
+      const paginatedProducts = productsArray.slice(skip, skip + limitNumber);
+
+      return {
+        products: paginatedProducts,
+        pagination: {
+          page: pageNumber,
+          totalPage: Math.ceil(total / limitNumber),
+          totalItems: total,
+          pageSize: limitNumber,
+          hasMore: skip + limitNumber < total
+        }
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getBatchStatistics(daysUntilExpiry = 30) {
+    try {
+      const currentDate = new Date();
+      const expiryThreshold = new Date();
+      expiryThreshold.setDate(currentDate.getDate() + parseInt(daysUntilExpiry));
+
+      const [
+        totalInventoryResult,
+        nearExpiryResult,
+        expiredResult
+      ] = await Promise.all([
+        InventoryBatch.aggregate([
+          {
+            $match: {
+              remainingQuantity: { $gt: 0 }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              totalBatches: { $sum: 1 },
+              totalQuantity: { $sum: "$remainingQuantity" },
+              totalValue: { $sum: { $multiply: ["$remainingQuantity", "$costPrice"] } }
+            }
+          }
+        ]),
+
+        InventoryBatch.aggregate([
+          {
+            $match: {
+              expiryDate: { $gte: currentDate, $lte: expiryThreshold },
+              remainingQuantity: { $gt: 0 }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              totalBatches: { $sum: 1 },
+              totalQuantity: { $sum: "$remainingQuantity" },
+              totalValue: { $sum: { $multiply: ["$remainingQuantity", "$costPrice"] } }
+            }
+          }
+        ]),
+
+        InventoryBatch.aggregate([
+          {
+            $match: {
+              expiryDate: { $lt: currentDate },
+              remainingQuantity: { $gt: 0 }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              totalBatches: { $sum: 1 },
+              totalQuantity: { $sum: "$remainingQuantity" },
+              totalValue: { $sum: { $multiply: ["$remainingQuantity", "$costPrice"] } }
+            }
+          }
+        ])
+      ]);
+
+      return {
+        totalInventory: {
+          totalBatches: totalInventoryResult[0]?.totalBatches || 0,
+          totalQuantity: totalInventoryResult[0]?.totalQuantity || 0,
+          totalValue: totalInventoryResult[0]?.totalValue || 0
+        },
+        nearExpiry: {
+          daysUntilExpiry,
+          totalBatches: nearExpiryResult[0]?.totalBatches || 0,
+          totalQuantity: nearExpiryResult[0]?.totalQuantity || 0,
+          totalValue: nearExpiryResult[0]?.totalValue || 0
+        },
+        expired: {
+          totalBatches: expiredResult[0]?.totalBatches || 0,
+          totalQuantity: expiredResult[0]?.totalQuantity || 0,
+          totalValue: expiredResult[0]?.totalValue || 0
+        }
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

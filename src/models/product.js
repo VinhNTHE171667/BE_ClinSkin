@@ -5,6 +5,7 @@ const productSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    unique: true,
     trim: true
   },
   slug: {
@@ -57,6 +58,15 @@ const productSchema = new mongoose.Schema({
     trim: true,
     enum: ["NEW", "HOT"]
   }],
+  totalRating: {
+    type: Number,
+    default: 0
+  },
+  ratingCount: {
+    type: Number,
+    default: 0
+  },
+
   isDeleted: {
     type: Boolean,
     default: false

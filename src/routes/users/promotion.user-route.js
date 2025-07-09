@@ -1,5 +1,5 @@
 import express from "express";
-import { getActivePromotions, getListFromPromotion, getPromotionalProducts } from "../../controllers/promotionController.js";
+import { getActivePromotions, getListFromPromotion, getPromotionalProducts } from "../../controllers/promotion.controller.js";
 
 
 const router = express.Router();

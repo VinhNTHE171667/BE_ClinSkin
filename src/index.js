@@ -13,6 +13,8 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth2";
 import { googleCallback } from "./controllers/auth.controller.js";
 import { saveUser } from "./services/user.service.js";
+import User from "./models/user.model.js";
+import { app, server } from "./websocket/index.js";
 
 dotenv.config();
 
@@ -20,8 +22,6 @@ const PORT = process.env.PORT || 9999;
 const clientID = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-const app = express();
-const server = http.createServer(app);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan("dev"));
