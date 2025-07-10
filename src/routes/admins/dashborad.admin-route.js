@@ -11,7 +11,8 @@ import {
   getYearlyOrderStatsLastFiveYears,
   getDailyReviewStatsInMonth,
   getMonthlyReviewStatsInYear,
-  getYearlyReviewStatsLastFiveYears
+  getYearlyReviewStatsLastFiveYears,
+  getBestSellingProductsByMonth
 } from "../../controllers/dashborad.controller.js";
 
 const router = express.Router();
@@ -31,5 +32,7 @@ router.get("/orders/yearly", getYearlyOrderStatsLastFiveYears);
 router.get("/reviews/daily/:year/:month", getDailyReviewStatsInMonth);
 router.get("/reviews/monthly/:year", getMonthlyReviewStatsInYear);
 router.get("/reviews/yearly", getYearlyReviewStatsLastFiveYears);
+
+router.get("/best-selling-products/:year/:month", getBestSellingProductsByMonth);
 
 export default router;
