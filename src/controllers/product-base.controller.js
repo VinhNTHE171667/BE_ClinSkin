@@ -453,3 +453,97 @@ export const getProductSearch = async (req, res) => {
     });
   }
 };
+
+export const getListFromCategory = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 12;
+    const { slug } = req.params;
+    const { priceRange, tags, sortOrder = "asc" } = req.query;
+
+    // 1. Tìm category theo slug
+    const category = await Category.findOne({ slug });
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Danh mục không tồn tại",
+        data: [],
+      });
+    }
+
+    // 2. Điều kiện lọc sản phẩm
+    const matchStage = {
+      categories: { $in: [category._id] },
+      isDeleted: false,
+    };
+
+    if (tags) {
+      matchStage.tags = { $in: tags.split(",") };
+    }
+
+    const aggregationPipeline = [
+      { $match: matchStage },
+
+      { ...calulateFinalPricePipeline },
+
+      {
+        $addFields: {
+          finalPrice: { $round: ["$finalPrice", 0] },
+        },
+      },
+
+      ...(priceRange
+        ? [
+            {
+              $match: {
+                finalPrice: {
+                  $gte: Number(priceRange.split("-")[0]),
+                  $lte: Number(priceRange.split("-")[1]),
+                },
+              },
+            },
+          ]
+        : []),
+
+      ...brandAndCategoryInfo,
+
+      { ...projectFileds },
+
+      { $sort: { finalPrice: sortOrder === "asc" ? 1 : -1 } },
+
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $skip: (page - 1) * pageSize }, { $limit: pageSize }],
+        },
+      },
+    ];
+
+    const [result] = await Product.aggregate(aggregationPipeline);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        category: category.name,
+        products: result.data.map((p) => ({
+          ...p,
+          finalPrice: calculateFinalPrice(p),
+        })),
+        pagination: {
+          page,
+          totalPage: Math.ceil((result.metadata[0]?.total || 0) / pageSize),
+          totalItems: result.metadata[0]?.total || 0,
+          pageSize,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("getListFromCategory error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ",
+      data: [],
+      error: error.message,
+    });
+  }
+};
