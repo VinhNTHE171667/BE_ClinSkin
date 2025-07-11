@@ -448,3 +448,57 @@ export const getBestSellingProductsByMonth = async (req, res) => {
         });
     }
 };
+
+// Lấy danh sách sản phẩm bán chạy nhất theo năm
+export const getBestSellingProductsByYear = async (req, res) => {
+    try {
+        const { year } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+
+        const yearNum = parseInt(year);
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+
+        if (isNaN(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm không hợp lệ"
+            });
+        }
+
+        if (isNaN(pageNum) || pageNum < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Số trang không hợp lệ"
+            });
+        }
+
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+            return res.status(400).json({
+                success: false,
+                message: "Số lượng sản phẩm mỗi trang phải từ 1-100"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getBestSellingProductsByYear(
+            yearNum, 
+            pageNum, 
+            limitNum
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Lấy danh sách sản phẩm bán chạy nhất theo năm thành công",
+            data: result.products,
+            pagination: result.pagination,
+            summary: result.summary
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách sản phẩm bán chạy nhất theo năm:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy danh sách sản phẩm bán chạy nhất theo năm",
+            error: error.message
+        });
+    }
+};

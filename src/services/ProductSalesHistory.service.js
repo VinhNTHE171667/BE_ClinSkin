@@ -381,6 +381,168 @@ class ProductSalesHistoryService {
             throw new Error(`Lỗi khi lấy danh sách sản phẩm bán chạy tháng ${month}/${year}: ${error.message}`);
         }
     }
+
+    // Lấy danh sách sản phẩm bán chạy nhất theo năm
+    async getBestSellingProductsByYear(year, page = 1, limit = 10) {
+        try {
+            const startDate = new Date(year, 0, 1);
+            const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+            
+            // Tính dữ liệu năm trước để so sánh
+            const prevYear = year - 1;
+            const prevStartDate = new Date(prevYear, 0, 1);
+            const prevEndDate = new Date(prevYear, 11, 31, 23, 59, 59, 999);
+
+            const skip = (page - 1) * limit;
+
+            // Lấy dữ liệu năm hiện tại
+            const currentYearData = await ProductSalesHistory.aggregate([
+                {
+                    $match: {
+                        saleDate: { $gte: startDate, $lte: endDate },
+                        isCompleted: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$productId",
+                        totalQuantity: { $sum: "$quantity" },
+                        totalRevenue: { $sum: "$totalRevenue" },
+                        totalCost: { $sum: "$totalCost" },
+                        totalOrders: { $sum: 1 }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "products",
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "product"
+                    }
+                },
+                {
+                    $unwind: "$product"
+                },
+                {
+                    $lookup: {
+                        from: "brands",
+                        localField: "product.brandId",
+                        foreignField: "_id",
+                        as: "brand"
+                    }
+                },
+                {
+                    $unwind: { path: "$brand", preserveNullAndEmptyArrays: true }
+                },
+                {
+                    $project: {
+                        productId: "$_id",
+                        productInfo: {
+                            _id: "$product._id",
+                            name: "$product.name",
+                            slug: "$product.slug",
+                            price: "$product.price",
+                            mainImage: "$product.mainImage",
+                            brand: "$brand.name",
+                            totalRating: "$product.totalRating",
+                            ratingCount: "$product.ratingCount"
+                        },
+                        currentYear: {
+                            totalQuantity: "$totalQuantity",
+                            totalRevenue: "$totalRevenue",
+                            totalCost: "$totalCost",
+                            grossProfit: { $subtract: ["$totalRevenue", "$totalCost"] },
+                            totalOrders: "$totalOrders"
+                        },
+                        _id: 0
+                    }
+                },
+                {
+                    $sort: { "currentYear.totalQuantity": -1 }
+                }
+            ]);
+
+            // Lấy dữ liệu năm trước để so sánh
+            const prevYearData = await ProductSalesHistory.aggregate([
+                {
+                    $match: {
+                        saleDate: { $gte: prevStartDate, $lte: prevEndDate },
+                        isCompleted: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$productId",
+                        totalQuantity: { $sum: "$quantity" },
+                        totalRevenue: { $sum: "$totalRevenue" }
+                    }
+                }
+            ]);
+
+            // Tạo map để dễ tra cứu dữ liệu năm trước
+            const prevYearMap = {};
+            prevYearData.forEach(item => {
+                prevYearMap[item._id.toString()] = {
+                    totalQuantity: item.totalQuantity,
+                    totalRevenue: item.totalRevenue
+                };
+            });
+
+            // Tính toán tỷ lệ tăng/giảm và kết hợp dữ liệu
+            const productsWithComparison = currentYearData.map(item => {
+                const productId = item.productId.toString();
+                const prevData = prevYearMap[productId] || { totalQuantity: 0, totalRevenue: 0 };
+
+                // Tính tỷ lệ thay đổi số lượng
+                const quantityChangePercent = prevData.totalQuantity > 0 
+                    ? ((item.currentYear.totalQuantity - prevData.totalQuantity) / prevData.totalQuantity) * 100
+                    : item.currentYear.totalQuantity > 0 ? 100 : 0;
+
+                // Tính tỷ lệ thay đổi doanh thu
+                const revenueChangePercent = prevData.totalRevenue > 0 
+                    ? ((item.currentYear.totalRevenue - prevData.totalRevenue) / prevData.totalRevenue) * 100
+                    : item.currentYear.totalRevenue > 0 ? 100 : 0;
+
+                return {
+                    ...item,
+                    previousYear: {
+                        totalQuantity: prevData.totalQuantity,
+                        totalRevenue: prevData.totalRevenue
+                    },
+                    comparison: {
+                        quantityChange: item.currentYear.totalQuantity - prevData.totalQuantity,
+                        quantityChangePercent: Math.round(quantityChangePercent * 100) / 100,
+                        revenueChange: item.currentYear.totalRevenue - prevData.totalRevenue,
+                        revenueChangePercent: Math.round(revenueChangePercent * 100) / 100
+                    }
+                };
+            });
+
+            // Phân trang
+            const total = productsWithComparison.length;
+            const paginatedProducts = productsWithComparison.slice(skip, skip + limit);
+
+            return {
+                products: paginatedProducts,
+                pagination: {
+                    currentPage: page,
+                    totalPages: Math.ceil(total / limit),
+                    totalItems: total,
+                    itemsPerPage: limit,
+                    hasNextPage: page < Math.ceil(total / limit),
+                    hasPrevPage: page > 1
+                },
+                summary: {
+                    year: year,
+                    totalProducts: total,
+                    comparisonYear: prevYear
+                }
+            };
+
+        } catch (error) {
+            throw new Error(`Lỗi khi lấy danh sách sản phẩm bán chạy năm ${year}: ${error.message}`);
+        }
+    }
 }
 
 export default new ProductSalesHistoryService();
