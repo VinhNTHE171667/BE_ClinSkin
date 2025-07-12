@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import ProductSalesHistory from "../models/ProductSalesHistory.model.js";
+import Product from "../models/product.js";
 
 class ProductSalesHistoryService {
     async getMonthlyRevenue(year, month) {
@@ -541,6 +543,102 @@ class ProductSalesHistoryService {
 
         } catch (error) {
             throw new Error(`Lỗi khi lấy danh sách sản phẩm bán chạy năm ${year}: ${error.message}`);
+        }
+    }
+
+    async getProductLineChartByYear(productId, year) {
+        try {
+            const startDate = new Date(year, 0, 1);
+            const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+
+            const currentYearData = await ProductSalesHistory.aggregate([
+                {
+                    $match: {
+                        productId: new mongoose.Types.ObjectId(productId),
+                        saleDate: { $gte: startDate, $lte: endDate },
+                        isCompleted: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $month: "$saleDate" },
+                        totalQuantity: { $sum: "$quantity" },
+                        totalRevenue: { $sum: "$totalRevenue" },
+                        totalCost: { $sum: "$totalCost" },
+                        totalOrders: { $sum: 1 }
+                    }
+                },
+                {
+                    $project: {
+                        month: "$_id",
+                        totalQuantity: 1,
+                        totalRevenue: 1,
+                        totalCost: 1,
+                        grossProfit: { $subtract: ["$totalRevenue", "$totalCost"] },
+                        totalOrders: 1,
+                        _id: 0
+                    }
+                },
+                {
+                    $sort: { month: 1 }
+                }
+            ]);
+
+            const productInfo = await Product.findById(productId)
+                .populate('brandId', 'name')
+                .select('_id name slug price mainImage')
+                .lean();
+
+            const monthlyData = [];
+            const dataMap = {};
+            
+            currentYearData.forEach(item => {
+                dataMap[item.month] = item;
+            });
+
+            for (let month = 1; month <= 12; month++) {
+                const data = dataMap[month] || {
+                    month: month,
+                    totalQuantity: 0,
+                    totalRevenue: 0,
+                    totalCost: 0,
+                    grossProfit: 0,
+                    totalOrders: 0
+                };
+                
+                monthlyData.push({
+                    month: month,
+                    totalQuantity: data.totalQuantity,
+                    totalRevenue: data.totalRevenue,
+                    totalCost: data.totalCost,
+                    grossProfit: data.grossProfit,
+                    totalOrders: data.totalOrders
+                });
+            }
+
+            const yearSummary = monthlyData.reduce((acc, curr) => ({
+                totalQuantity: acc.totalQuantity + curr.totalQuantity,
+                totalRevenue: acc.totalRevenue + curr.totalRevenue,
+                totalCost: acc.totalCost + curr.totalCost,
+                grossProfit: acc.grossProfit + curr.grossProfit,
+                totalOrders: acc.totalOrders + curr.totalOrders
+            }), {
+                totalQuantity: 0,
+                totalRevenue: 0,
+                totalCost: 0,
+                grossProfit: 0,
+                totalOrders: 0
+            });
+
+            return {
+                productInfo: productInfo,
+                year: year,
+                monthlyData: monthlyData,
+                yearSummary: yearSummary
+            };
+
+        } catch (error) {
+            throw new Error(`Lỗi khi lấy thống kê lineChart sản phẩm năm ${year}: ${error.message}`);
         }
     }
 }

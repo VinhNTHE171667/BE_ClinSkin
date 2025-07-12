@@ -502,3 +502,43 @@ export const getBestSellingProductsByYear = async (req, res) => {
         });
     }
 };
+
+export const getProductLineChartByYear = async (req, res) => {
+    try {
+        const { productId, year } = req.params;
+
+        const yearNum = parseInt(year);
+
+        if (isNaN(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm không hợp lệ"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getProductLineChartByYear(
+            productId, 
+            yearNum
+        );
+
+        if (!result.productInfo) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy dữ liệu cho sản phẩm này"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Lấy thống kê lineChart sản phẩm thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê lineChart sản phẩm:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy thống kê lineChart sản phẩm",
+            error: error.message
+        });
+    }
+};
