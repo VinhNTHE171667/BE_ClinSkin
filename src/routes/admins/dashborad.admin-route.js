@@ -14,7 +14,8 @@ import {
   getYearlyReviewStatsLastFiveYears,
   getBestSellingProductsByMonth,
   getBestSellingProductsByYear,
-  getProductLineChartByYear
+  getProductLineChartByYear,
+  getProductLineChartByLastFiveYears
 } from "../../controllers/dashborad.controller.js";
 
 const router = express.Router();
@@ -38,6 +39,7 @@ router.get("/reviews/yearly", getYearlyReviewStatsLastFiveYears);
 router.get("/best-selling-products/:year/:month", getBestSellingProductsByMonth);
 router.get("/best-selling-products/:year", getBestSellingProductsByYear);
 
+router.get("/product-chart/:productId/five-years", getProductLineChartByLastFiveYears);
 router.get("/product-chart/:productId/:year", getProductLineChartByYear);
 
 export default router;

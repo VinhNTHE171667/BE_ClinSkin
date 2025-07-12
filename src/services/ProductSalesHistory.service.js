@@ -641,6 +641,119 @@ class ProductSalesHistoryService {
             throw new Error(`Lỗi khi lấy thống kê lineChart sản phẩm năm ${year}: ${error.message}`);
         }
     }
+
+    async getProductLineChartByLastFiveYears(productId) {
+        try {
+            const currentYear = new Date().getFullYear();
+            const startYear = currentYear - 4;
+            const startDate = new Date(startYear, 0, 1);
+            const endDate = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+
+            const yearlyData = await ProductSalesHistory.aggregate([
+                {
+                    $match: {
+                        productId: new mongoose.Types.ObjectId(productId),
+                        saleDate: { $gte: startDate, $lte: endDate },
+                        isCompleted: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $year: "$saleDate" },
+                        totalQuantity: { $sum: "$quantity" },
+                        totalRevenue: { $sum: "$totalRevenue" },
+                        totalCost: { $sum: "$totalCost" },
+                        totalOrders: { $sum: 1 }
+                    }
+                },
+                {
+                    $project: {
+                        year: "$_id",
+                        totalQuantity: 1,
+                        totalRevenue: 1,
+                        totalCost: 1,
+                        grossProfit: { $subtract: ["$totalRevenue", "$totalCost"] },
+                        totalOrders: 1,
+                        _id: 0
+                    }
+                },
+                {
+                    $sort: { year: 1 }
+                }
+            ]);
+
+            // Lấy thông tin sản phẩm
+            const productInfo = await Product.findById(productId)
+                .populate('brandId', 'name')
+                .select('_id name slug price mainImage totalRating ratingCount')
+                .lean();
+
+            if (!productInfo) {
+                throw new Error('Không tìm thấy sản phẩm');
+            }
+
+            // Tạo dữ liệu đầy đủ cho 5 năm 
+            const dataMap = {};
+            yearlyData.forEach(item => {
+                dataMap[item.year] = item;
+            });
+
+            const fiveYearData = [];
+            for (let year = startYear; year <= currentYear; year++) {
+                const data = dataMap[year] || {
+                    year: year,
+                    totalQuantity: 0,
+                    totalRevenue: 0,
+                    totalCost: 0,
+                    grossProfit: 0,
+                    totalOrders: 0
+                };
+                
+                fiveYearData.push({
+                    year: year,
+                    totalQuantity: data.totalQuantity,
+                    totalRevenue: data.totalRevenue,
+                    totalCost: data.totalCost,
+                    grossProfit: data.grossProfit,
+                    totalOrders: data.totalOrders
+                });
+            }
+
+            // Tính tổng kết 5 năm
+            const fiveYearSummary = fiveYearData.reduce((acc, curr) => ({
+                totalQuantity: acc.totalQuantity + curr.totalQuantity,
+                totalRevenue: acc.totalRevenue + curr.totalRevenue,
+                totalCost: acc.totalCost + curr.totalCost,
+                grossProfit: acc.grossProfit + curr.grossProfit,
+                totalOrders: acc.totalOrders + curr.totalOrders
+            }), {
+                totalQuantity: 0,
+                totalRevenue: 0,
+                totalCost: 0,
+                grossProfit: 0,
+                totalOrders: 0
+            });
+
+            return {
+                productInfo: {
+                    _id: productInfo._id,
+                    name: productInfo.name,
+                    slug: productInfo.slug,
+                    price: productInfo.price,
+                    mainImage: productInfo.mainImage,
+                    brand: productInfo.brandId?.name || 'Không có thương hiệu',
+                    totalRating: productInfo.totalRating,
+                    ratingCount: productInfo.ratingCount
+                },
+                yearRange: `${startYear}-${currentYear}`,
+                yearlyData: fiveYearData,
+                fiveYearSummary: fiveYearSummary
+            };
+
+        } catch (error) {
+            throw new Error(`Lỗi khi lấy thống kê lineChart sản phẩm 5 năm gần nhất: ${error.message}`);
+        }
+    }
 }
 
 export default new ProductSalesHistoryService();

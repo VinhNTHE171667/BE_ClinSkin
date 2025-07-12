@@ -542,3 +542,38 @@ export const getProductLineChartByYear = async (req, res) => {
         });
     }
 };
+
+export const getProductLineChartByLastFiveYears = async (req, res) => {
+    try {
+        const { productId } = req.params;
+
+        if (!productId) {
+            return res.status(400).json({
+                success: false,
+                message: "Vui lòng cung cấp productId"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getProductLineChartByLastFiveYears(productId);
+
+        if (!result.productInfo) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy dữ liệu cho sản phẩm này"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Lấy thống kê lineChart sản phẩm 5 năm gần nhất thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê lineChart sản phẩm 5 năm gần nhất:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy thống kê lineChart sản phẩm 5 năm gần nhất",
+            error: error.message
+        });
+    }
+};
