@@ -2,6 +2,7 @@ import express from "express";
 import {
   getAllProductByUser,
   getListFromBrand,
+  getListFromCategory,
   getProductDetailBySlug,
   getProductFilters,
   getProductHome,
@@ -18,5 +19,6 @@ router.get("/", getProducts);
 router.get("/all-other", getAllProductByUser);
 router.get("/filter-options", getProductFilters);
 router.get("/brands/:slug", getListFromBrand);
+router.get("/categories/:slug", getListFromCategory);
 
 export default router;
