@@ -17,6 +17,7 @@ import salesHistoryRouters from "./sales-history.admin-route.js";
 import dashboradRoutes from "./dashborad.admin-route.js";
 import adminAccountRoutes from "./admin-account.admin-route.js";
 import orderRoutes from "./order.admin-route.js";
+import stockRoutes from "./stock.admin-route.js";
 
 const router = express.Router();
 
@@ -62,6 +63,12 @@ router.use(
   "/orders",
   authMiddlewareAdmin(accessRole([ADMIN_ROLE, SUPPORT_ROLE])),
   orderRoutes
+);
+
+router.use(
+  "/stock",
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  stockRoutes
 );
 
 export default router;
