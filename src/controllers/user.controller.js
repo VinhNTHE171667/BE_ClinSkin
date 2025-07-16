@@ -64,13 +64,13 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    // Cập nhật thông tin cơ bản
+   
     if (name) user.name = name;
     if (email) user.email = email;
     if (phone) user.phone = phone;
     if (isActive !== undefined) user.isActive = isActive;
 
-    // Cập nhật địa chỉ nếu có
+
     if (address && typeof address === "object") {
       user.address = {
         province: address.province || user.address?.province,
@@ -80,7 +80,7 @@ export const updateUser = async (req, res) => {
       };
     }
 
-    // Xử lý avatar
+   
     if (avatar) {
       if (typeof avatar === "string" && avatar.startsWith("data:image")) {
         // Nếu có avatar mới (base64), upload lên Cloudinary
@@ -93,7 +93,7 @@ export const updateUser = async (req, res) => {
           url: uploaded.url,
         };
       } else if (typeof avatar === "object" && avatar.url && avatar.publicId) {
-        // Giữ nguyên avatar cũ nếu không thay đổi
+
         user.avatar = avatar;
       }
     }
