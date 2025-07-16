@@ -264,7 +264,7 @@ export const getPromotionalProducts = async (req, res) => {
       endDate: { $gte: currentDate }
     };
 
-    // Optional: filter by custom start-end date
+  
     if (startDate && endDate) {
       filter.startDate = { $gte: new Date(startDate) };
       filter.endDate = { $lte: new Date(endDate) };
@@ -283,7 +283,7 @@ export const getPromotionalProducts = async (req, res) => {
       })
       .lean();
 
-    // 🔎 Filter discount
+
     const min = discountMin ? parseFloat(discountMin) : 0;
     const max = discountMax ? parseFloat(discountMax) : Infinity;
 
@@ -351,13 +351,13 @@ export const getListFromPromotion = async (req, res) => {
       maxPrice = Number.MAX_SAFE_INTEGER,
     } = req.query;
 
-    // Tìm promotion và populate sản phẩm
+ 
     const promotion = await Promotion.findOne({ slug }).populate({
       path: "products.product",
       model: "Product"
     });
 
-    // Không tìm thấy promotion
+  
     if (!promotion) {
       return res.status(404).json({
         success: false,
@@ -366,7 +366,7 @@ export const getListFromPromotion = async (req, res) => {
       });
     }
 
-    // Lọc theo tên khuyến mãi nếu cần
+
     if (
       name &&
       !promotion.name.toLowerCase().includes(name.toString().toLowerCase())
@@ -378,12 +378,12 @@ export const getListFromPromotion = async (req, res) => {
       });
     }
 
-    // Lọc sản phẩm theo điều kiện
+ 
     const filteredProducts = promotion.products.filter((item) => {
       const discount = Number(item.discountPercentage || 0);
       const product = item.product;
 
-      // Nếu product null (do populate thất bại), bỏ qua
+
       if (!product) return false;
 
       const price = product.price || 0;
