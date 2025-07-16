@@ -19,7 +19,7 @@ export const AdminSchema = new mongoose.Schema(
     role: {
       type: String,
       default: "ADMIN",
-      enum: ["ADMIN", "STAFF"],
+      enum: ["ADMIN", "STAFF", "SUPPORT"],
     },
     avatar: {
       url: {
@@ -75,7 +75,7 @@ export const initializeAdmin = async () => {
           url: `https://avatar.iran.liara.run/username?username=staff`,
           publicId: "",
         },
-      },
+      }
     ];
     for (const account of defaultAccounts) {
       const newUser = new Admin(account);
