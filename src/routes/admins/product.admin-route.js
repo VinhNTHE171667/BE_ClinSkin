@@ -1,30 +1,43 @@
 import express from "express";
-import { 
-  searchProductByName, 
-  getProducts, 
-  getProductById, 
+import {
+  searchProductByName,
+  getProducts,
+  getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
-  restoreProduct
+  restoreProduct,
+  getProductByPromotionAdd
 } from "../../controllers/productController.js";
 import {
   createProductValidate,
   updateProductValidate,
   deleteProductValidate,
   getProductByIdValidate,
-  getProductsValidate
+  getProductsValidate,
 } from "../../validates/product.validate.js";
 import { validateMiddleWare } from "../../middleware/validate.middleware.js";
 
 const router = express.Router();
 
-router.get('/search', getProductsValidate, validateMiddleWare, searchProductByName);
-router.get('/', getProductsValidate, validateMiddleWare, getProducts);
-router.get('/:id', getProductByIdValidate, validateMiddleWare, getProductById);
-router.post('/', createProductValidate, validateMiddleWare, createProduct);
-router.put('/:id', updateProductValidate, validateMiddleWare, updateProduct);
-router.delete('/:id', deleteProductValidate, validateMiddleWare, deleteProduct);
-router.post('/:id/restore', deleteProductValidate, validateMiddleWare, restoreProduct);
+router.get(
+  "/search",
+  getProductsValidate,
+  validateMiddleWare,
+  searchProductByName
+);
+router.get("/", getProductsValidate, validateMiddleWare, getProducts);
+router.get("/promotion-create", getProductByPromotionAdd);
+router.get("/:id", getProductByIdValidate, validateMiddleWare, getProductById);
+router.post("/", createProductValidate, validateMiddleWare, createProduct);
+router.put("/:id", updateProductValidate, validateMiddleWare, updateProduct);
+router.delete("/:id", deleteProductValidate, validateMiddleWare, deleteProduct);
+router.post(
+  "/:id/restore",
+  deleteProductValidate,
+  validateMiddleWare,
+  restoreProduct
+);
+
 
 export default router;

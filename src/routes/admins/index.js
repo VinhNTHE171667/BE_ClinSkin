@@ -13,16 +13,18 @@ import brandRoutes from "./brand.admin-route.js";
 import userRoutes from "./user.admin-route.js";
 import inventoryBatchRoutes from "./inventoryBatch.routes.js";
 import salesHistoryRouters from "./sales-history.admin-route.js";
+import dashboradRoutes from "./dashborad.admin-route.js";
+import adminAccountRoutes from "./admin-account.admin-route.js";
 
 const router = express.Router();
 
 router.use("/auth", authRoutes);
 router.use("/product", productRoutes);
-router.use("/promotion", promotionRoutes);
+router.use("/promotions", promotionRoutes);
 router.use(
-    "/categories",
-    authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
-    categoryRoutes
+  "/categories",
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  categoryRoutes
 );
 router.use("/brands", brandRoutes);
 router.use(
@@ -31,15 +33,27 @@ router.use(
   userRoutes
 );
 router.use(
-    "/inventory-batches",
-    authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
-    inventoryBatchRoutes
+  "/inventory-batches",
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  inventoryBatchRoutes
 );
 
 router.use(
-    "/sales-history",
-    authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
-    salesHistoryRouters
+  "/sales-history",
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  salesHistoryRouters
+);
+
+router.use(
+  "/dashboard",
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  dashboradRoutes
+);
+
+router.use(
+  "/admin-accounts",
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  adminAccountRoutes
 );
 
 export default router;

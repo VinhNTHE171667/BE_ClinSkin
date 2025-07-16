@@ -34,6 +34,14 @@ const ProductSalesHistorySchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    totalRevenue: {
+      type: Number,
+      required: true,
+    },
+    isCompleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

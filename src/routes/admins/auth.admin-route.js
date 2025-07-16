@@ -9,9 +9,6 @@ import { loginAdminValidate } from "../../validates/auth.validate.js";
 import { authMiddlewareAdmin } from "../../middleware/auth.middleware.js";
 import multer from "multer";
 
-
-import { searchProductByName } from "../../controllers/productController.js";
-
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 router.post("/login", loginAdminValidate, validateMiddleWare, loginAdmin);
