@@ -5,6 +5,7 @@ import { authMiddlewareAdmin } from "../../middleware/auth.middleware.js";
 import {
   accessRole,
   ADMIN_ROLE,
+  SUPPORT_ROLE,
 } from "../../ultis/getRole.js";
 
 import productRoutes from "./product.admin-route.js";
@@ -15,6 +16,7 @@ import inventoryBatchRoutes from "./inventoryBatch.routes.js";
 import salesHistoryRouters from "./sales-history.admin-route.js";
 import dashboradRoutes from "./dashborad.admin-route.js";
 import adminAccountRoutes from "./admin-account.admin-route.js";
+import orderRoutes from "./order.admin-route.js";
 
 const router = express.Router();
 
@@ -54,6 +56,12 @@ router.use(
   "/admin-accounts",
   authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
   adminAccountRoutes
+);
+
+router.use(
+  "/orders",
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE, SUPPORT_ROLE])),
+  orderRoutes
 );
 
 export default router;

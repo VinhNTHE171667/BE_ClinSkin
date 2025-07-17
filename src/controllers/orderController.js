@@ -1,6 +1,11 @@
-import Order from '../models/order.js';
-import mongoose from 'mongoose';
-import { calculateOrderAmount, updateProductInventory, validateOrder } from '../services/order.service.js';
+import Order from "../models/order.js";
+import User from "../models/user.model.js";
+import mongoose from "mongoose";
+import {
+  calculateOrderAmount,
+  updateProductInventory,
+  validateOrder,
+} from "../services/order.service.js";
 
 export const getAllOrders = async (req, res) => {
   try {
@@ -11,9 +16,9 @@ export const getAllOrders = async (req, res) => {
       note,
       page = 1,
       limit = 10,
-      sortBy = 'createdAt',
-      order = 'desc',
-      startDate
+      sortBy = "createdAt",
+      order = "desc",
+      startDate,
     } = req.query;
 
     const query = {};
@@ -35,7 +40,7 @@ export const getAllOrders = async (req, res) => {
 
     // 🔍 Search by note (partial match)
     if (note) {
-      query.note = { $regex: note, $options: 'i' }; // case-insensitive
+      query.note = { $regex: note, $options: "i" }; // case-insensitive
     }
 
     // 🔢 Pagination
@@ -44,30 +49,30 @@ export const getAllOrders = async (req, res) => {
 
     // ⏫ Sorting
     const sortOption = {};
-    const allowedSortFields = ['createdAt', 'totalAmount'];
-    const allowedOrder = ['asc', 'desc'];
+    const allowedSortFields = ["createdAt", "totalAmount"];
+    const allowedOrder = ["asc", "desc"];
 
     if (allowedSortFields.includes(sortBy) && allowedOrder.includes(order)) {
-      sortOption[sortBy] = order === 'asc' ? 1 : -1;
+      sortOption[sortBy] = order === "asc" ? 1 : -1;
     } else {
       sortOption.createdAt = -1;
     }
 
     if (startDate) {
       query.createdAt = {
-        $gte: new Date(startDate)
+        $gte: new Date(startDate),
       };
     }
 
     // 📦 Query with filter, sort, paginate
     const [orders, total] = await Promise.all([
       Order.find(query)
-        .populate('userId', 'name email')
-        .populate('products.pid', 'name price mainImage')
+        .populate("userId", "name email")
+        .populate("products.pid", "name price mainImage")
         .sort(sortOption)
         .skip((pageNumber - 1) * pageSize)
         .limit(pageSize),
-      Order.countDocuments(query)
+      Order.countDocuments(query),
     ]);
 
     res.status(200).json({
@@ -75,11 +80,12 @@ export const getAllOrders = async (req, res) => {
       page: pageNumber,
       totalPages: Math.ceil(total / pageSize),
       pageSize,
-      orders
+      orders,
     });
-
   } catch (err) {
-    res.status(500).json({ error: 'Lỗi khi lấy danh sách đơn hàng', detail: err.message });
+    res
+      .status(500)
+      .json({ error: "Lỗi khi lấy danh sách đơn hàng", detail: err.message });
   }
 };
 
@@ -89,21 +95,22 @@ export const getOrderById = async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'ID đơn hàng không hợp lệ' });
+      return res.status(400).json({ error: "ID đơn hàng không hợp lệ" });
     }
 
     const order = await Order.findById(id)
-      .populate('userId', 'name email')
-      .populate('products.pid', 'name price');
+      .populate("userId", "name email")
+      .populate("products.pid", "name price");
 
     if (!order) {
-      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+      return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
     }
 
     res.status(200).json(order);
-
   } catch (err) {
-    res.status(500).json({ error: 'Lỗi khi lấy chi tiết đơn hàng', detail: err.message });
+    res
+      .status(500)
+      .json({ error: "Lỗi khi lấy chi tiết đơn hàng", detail: err.message });
   }
 };
 
@@ -116,8 +123,7 @@ export const createOrderCod = async (req, res) => {
     const user = req.user;
     console.log("userId", user);
 
-    const { name, products, phone, address, addressDetail, note } =
-      req.body;
+    const { name, products, phone, address, addressDetail, note } = req.body;
 
     // Validate đơn hàng
     const validationErrors = await validateOrder(products);
@@ -165,6 +171,93 @@ export const createOrderCod = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Có lỗi xảy ra khi đặt hàng",
+      error: error.message,
+    });
+  }
+};
+
+export const updateOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const updatedOrder = await Order.findByIdAndUpdate(id, data, { new: true });
+
+    if (!updatedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Đơn hàng không tồn tại",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật đơn hàng thành công",
+      data: updatedOrder,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi cập nhật trạng thái đơn hàng",
+      error: error.message,
+    });
+  }
+};
+
+export const getOrderByAdmin = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const { status, paymentMethod, fromDate, toDate, search } = req.query;
+    const skip = (page - 1) * pageSize;
+    let filter = {};
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (paymentMethod) {
+      filter.paymentMethod = paymentMethod;
+    }
+
+    if (fromDate && toDate) {
+      filter.createdAt = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
+    }
+
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { "userId.email": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(pageSize))
+        .populate("userId", "name email"),
+      Order.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: orders,
+      pagination: {
+        page,
+        totalPage: Math.ceil(total / pageSize),
+        pageSize,
+        totalItems: total,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
       error: error.message,
     });
   }
