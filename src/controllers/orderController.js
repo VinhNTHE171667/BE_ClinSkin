@@ -3,6 +3,7 @@ import User from "../models/user.model.js";
 import mongoose from "mongoose";
 import {
   calculateOrderAmount,
+  restoreProductQuantity,
   updateProductInventory,
   validateOrder,
 } from "../services/order.service.js";
@@ -258,6 +259,104 @@ export const getOrderByAdmin = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+export const updateStatusOrderByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, cancelReason } = req.body;
+    const admin = req.admin;
+
+    const order = await Order.findById(id).populate("userId", "name email");
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng",
+      });
+    }
+
+    // Store the current status before any changes
+    const prevStatus = order.status;
+
+    if (order.status === "delivered" || order.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Không thể thay đổi trạng thái đơn hàng đã hoàn thành hoặc đã hủy",
+      });
+    }
+
+    const validTransitions = {
+      pending: ["processing", "cancelled"],
+      processing: ["shipping", "cancelled"],
+      shipping: ["delivered", "cancelled"],
+    };
+
+    if (
+      status !== "cancelled" &&
+      !validTransitions[order.status]?.includes(status)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể chuyển trạng thái từ ${order.status} sang ${status}`,
+      });
+    }
+
+    switch (status) {
+      case "cancelled":
+        if (!cancelReason?.trim()) {
+          return res.status(400).json({
+            success: false,
+            message: "Vui lòng cung cấp lý do hủy đơn hàng",
+          });
+        }
+
+        if (["pending", "processing"].includes(order.status)) {
+          const restoreResult = await restoreProductQuantity(order.products);
+          if (!restoreResult.success) {
+            return res.status(400).json({
+              success: false,
+              message: "Không thể hoàn lại số lượng sản phẩm",
+            });
+          }
+        }
+
+        order.cancelReason = cancelReason.trim();
+        break;
+    }
+
+    order.status = status;
+    order.statusHistory.push({
+      prevStatus,
+      status,
+      updatedBy: admin._id,
+      updatedByModel: "Admin",
+      date: new Date(),
+    });
+
+    await order.save();
+
+    const populatedOrder = await Order.findById(order._id)
+      .populate("userId", "name email")
+      .populate({
+        path: "statusHistory.updatedBy",
+        select: "name username",
+        model: mongoose.model("Admin"),
+      });
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật trạng thái đơn hàng thành công",
+      data: populatedOrder,
+    });
+  } catch (error) {
+    console.error("Update order status error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi cập nhật trạng thái đơn hàng",
       error: error.message,
     });
   }

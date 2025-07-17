@@ -33,22 +33,8 @@ const itemSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const orderSchema = new mongoose.Schema(
+const addressSchema = new mongoose.Schema(
   {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    name: {
-      type: String,
-      required: true,
-    },
-    products: {
-      type: [itemSchema],
-      required: true,
-      validate: (v) => Array.isArray(v) && v.length > 0,
-    },
     province: {
       id: {
         type: Number,
@@ -71,13 +57,37 @@ const orderSchema = new mongoose.Schema(
     },
     ward: {
       id: {
-        type: String,
+        type: Number,
         required: true,
       },
       name: {
         type: String,
         required: true,
       },
+    },
+  },
+  { _id: false }
+);
+
+const orderSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    products: {
+      type: [itemSchema],
+      required: true,
+      validate: (v) => Array.isArray(v) && v.length > 0,
+    },
+    address: {
+      type: addressSchema,
+      required: true,
     },
     addressDetail: {
       type: String,
