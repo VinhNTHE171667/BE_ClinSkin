@@ -24,31 +24,31 @@ export const getAllOrders = async (req, res) => {
 
     const query = {};
 
-    // 📌 Filter by userId (validate ObjectId)
+ 
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       query.userId = userId;
     }
 
-    // 📌 Filter by status
+   
     if (status) {
       query.status = status;
     }
 
-    // 📌 Filter by paymentMethod
+  
     if (paymentMethod) {
       query.paymentMethod = paymentMethod;
     }
 
-    // 🔍 Search by note (partial match)
+   
     if (note) {
-      query.note = { $regex: note, $options: "i" }; // case-insensitive
+      query.note = { $regex: note, $options: 'i' }; 
     }
 
-    // 🔢 Pagination
+
     const pageNumber = Math.max(parseInt(page), 1);
     const pageSize = Math.max(parseInt(limit), 1);
 
-    // ⏫ Sorting
+    
     const sortOption = {};
     const allowedSortFields = ["createdAt", "totalAmount"];
     const allowedOrder = ["asc", "desc"];
@@ -65,7 +65,7 @@ export const getAllOrders = async (req, res) => {
       };
     }
 
-    // 📦 Query with filter, sort, paginate
+  
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate("userId", "name email")
