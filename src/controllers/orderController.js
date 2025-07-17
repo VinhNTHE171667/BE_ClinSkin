@@ -361,3 +361,28 @@ export const updateStatusOrderByAdmin = async (req, res) => {
     });
   }
 };
+
+export const removeOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedOrder = await Order.findByIdAndDelete(id);
+
+    if (!deletedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Đơn hàng không tồn tại",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Xóa đơn hàng thành công",
+      data: deletedOrder,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi khi xóa đơn hàng",
+      error: error.message,
+    });
+  }
+};
