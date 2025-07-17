@@ -17,7 +17,7 @@ export const createOrderValidate = [
         .notEmpty()
         .withMessage("Tổng tiền không được để trống"),
     
-    // ✅ Validate address object
+
     body("address")
         .isObject()
         .withMessage("Thông tin địa chỉ không hợp lệ"),
@@ -34,7 +34,7 @@ export const createOrderValidate = [
     
     body("note").optional().isString().withMessage("Ghi chú không hợp lệ"),
     
-    // ✅ Validate address.province
+
     body("address.province.id")
         .isNumeric()
         .withMessage("ID tỉnh/thành phố phải là số"),
@@ -43,7 +43,7 @@ export const createOrderValidate = [
         .notEmpty()
         .withMessage("Tên tỉnh/thành phố không được để trống"),
     
-    // ✅ Validate address.district  
+ 
     body("address.district.id")
         .isNumeric()
         .withMessage("ID quận/huyện phải là số"),
@@ -52,7 +52,7 @@ export const createOrderValidate = [
         .notEmpty()
         .withMessage("Tên quận/huyện không được để trống"),
     
-    // ✅ Validate address.ward
+
     body("address.ward.id")
         .isNumeric()
         .withMessage("ID phường/xã phải là số"),
@@ -62,7 +62,7 @@ export const createOrderValidate = [
         .withMessage("Tên phường/xã không được để trống"),
     
     body().custom((value) => {
-        // ✅ Validate address object structure
+   
         if (!value.address || typeof value.address !== 'object') {
             throw new Error("Thông tin địa chỉ không hợp lệ");
         }
@@ -73,7 +73,7 @@ export const createOrderValidate = [
             );
         }
         
-        // ✅ Validate nested structure
+
         const { province, district, ward } = value.address;
         
         if (!province.id || !province.name) {
