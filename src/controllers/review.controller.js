@@ -1,5 +1,4 @@
 import Review from "../models/review.js";
-// get review
 export const getReview = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -34,7 +33,6 @@ export const getReview = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-// update reply
 
 export const updateReplyByAdmin = async (req, res) => {
   try {
@@ -63,7 +61,6 @@ export const updateReplyByAdmin = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-// deleteReview
 export const deleteReviewById = async (req, res) => {
   const { id } = req.params;
 
@@ -79,7 +76,6 @@ export const deleteReviewById = async (req, res) => {
     res.status(500).json({ message: "Lỗi xoá review.", error: error.message });
   }
 };
-// toggle display
 export const toggleDisplayReview = async (req, res) => {
   const { id } = req.params;
   try {
