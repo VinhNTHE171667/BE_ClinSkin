@@ -150,7 +150,7 @@ export const createSalesHistory = async (req, res) => {
                 costDetails: costDetails,
                 totalCost: totalCost,
                 totalRevenue: totalRevenue,
-                isCompleted: true,
+                isCompleted: false,
             };
 
             salesHistoryRecords.push(salesHistoryRecord);

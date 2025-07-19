@@ -1,5 +1,6 @@
 import Order from "../models/order.js";
 import User from "../models/user.model.js";
+import ProductSalesHistory from "../models/ProductSalesHistory.model.js";
 import mongoose from "mongoose";
 import {
   calculateOrderAmount,
@@ -7,6 +8,7 @@ import {
   updateProductInventory,
   validateOrder,
 } from "../services/order.service.js";
+import inventoryBatchService from "../services/inventoryBatch.service.js";
 
 export const getAllOrders = async (req, res) => {
   try {
@@ -306,6 +308,14 @@ export const updateStatusOrderByAdmin = async (req, res) => {
     }
 
     switch (status) {
+      case "delivered":
+        // Khi giao hàng thành công, cập nhật isCompleted = true trong ProductSalesHistory
+        await ProductSalesHistory.updateMany(
+          { orderId: id },
+          { isCompleted: true }
+        );
+        break;
+
       case "cancelled":
         if (!cancelReason?.trim()) {
           return res.status(400).json({
@@ -314,13 +324,43 @@ export const updateStatusOrderByAdmin = async (req, res) => {
           });
         }
 
+        // Xử lý hoàn trả khi hủy đơn hàng
         if (["pending", "processing"].includes(order.status)) {
+          // Đơn hàng chưa tạo sales history, chỉ hoàn trả currentStock của Product
           const restoreResult = await restoreProductQuantity(order.products);
           if (!restoreResult.success) {
             return res.status(400).json({
               success: false,
               message: "Không thể hoàn lại số lượng sản phẩm",
             });
+          }
+        } else if (["shipping", "delivered"].includes(order.status)) {
+          // Đơn hàng đã tạo sales history, cần hoàn trả vào inventory batch
+          const salesHistories = await ProductSalesHistory.find({ orderId: id });
+          
+          for (const salesHistory of salesHistories) {
+            // Hoàn trả số lượng vào từng batch theo costDetails
+            for (const costDetail of salesHistory.costDetails) {
+              try {
+                // Tìm batch và cộng lại số lượng
+                const batch = await inventoryBatchService.getBatchByNumber(costDetail.batchNumber);
+                if (batch) {
+                  // Chỉ cập nhật remainingQuantity, cộng lại số lượng đã bán
+                  await inventoryBatchService.updateBatch(
+                    costDetail.batchNumber,
+                    undefined, // Không thay đổi total quantity
+                    undefined, // Không thay đổi expiry date
+                    batch.remainingQuantity + costDetail.quantityTaken // Cộng lại remaining quantity
+                  );
+                }
+              } catch (error) {
+                console.error(`Lỗi khi hoàn trả batch ${costDetail.batchNumber}:`, error);
+              }
+            }
+            
+            // Cập nhật isCompleted = false
+            salesHistory.isCompleted = false;
+            await salesHistory.save();
           }
         }
 

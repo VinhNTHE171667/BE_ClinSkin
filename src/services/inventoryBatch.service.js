@@ -23,7 +23,7 @@ class InventoryBatchService {
     }
   }
 
-  async updateBatch(batchNumber, newQuantity, expiryDate) {
+  async updateBatch(batchNumber, newQuantity, expiryDate, newRemainingQuantity) {
     try {
       const batch = await InventoryBatch.findOne({ batchNumber });
       if (!batch) {
@@ -33,12 +33,23 @@ class InventoryBatchService {
       if (newQuantity !== undefined) {
         const quantityChange = newQuantity - batch.quantity;
 
-        let newRemainingQuantity = batch.remainingQuantity + quantityChange;
+        let remainingQuantity = newRemainingQuantity !== undefined ? 
+          newRemainingQuantity : batch.remainingQuantity + quantityChange;
 
-        const remainingQuantityChange =
-          newRemainingQuantity - batch.remainingQuantity;
+        const remainingQuantityChange = remainingQuantity - batch.remainingQuantity;
 
         batch.quantity = newQuantity;
+        batch.remainingQuantity = remainingQuantity;
+
+        if (remainingQuantityChange !== 0) {
+          await Product.findByIdAndUpdate(batch.productId, {
+            $inc: { currentStock: remainingQuantityChange },
+          });
+        }
+      } else if (newRemainingQuantity !== undefined) {
+        // Chỉ cập nhật remainingQuantity mà không thay đổi total quantity
+        const remainingQuantityChange = newRemainingQuantity - batch.remainingQuantity;
+        
         batch.remainingQuantity = newRemainingQuantity;
 
         if (remainingQuantityChange !== 0) {
