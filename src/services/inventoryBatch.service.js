@@ -78,7 +78,10 @@ class InventoryBatchService {
     if (total < requiredQuantity) {
       return {
         success: false,
-        message: `Not enough stock available. Required: ${requiredQuantity}, Available: ${total}`,
+        message: `Không đủ hàng. Yêu cầu: ${requiredQuantity}, Có sẵn: ${total}, Thiếu: ${requiredQuantity - total}`,
+        total,
+        shortage: requiredQuantity - total,
+        availableBatches: result
       };
     }
 
@@ -110,6 +113,30 @@ class InventoryBatchService {
       await Product.findByIdAndUpdate(batch.productId, {
         $inc: { currentStock: -quantity },
       });
+
+      return batch;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async deductQuantityFromBatchOnly(batchNumber, quantity) {
+    try {
+      const batch = await InventoryBatch.findOne({ batchNumber });
+      if (!batch) {
+        throw new Error("Inventory batch not found");
+      }
+
+      if (batch.remainingQuantity < quantity) {
+        throw new Error(
+          `Cannot deduct ${quantity} units. Only ${batch.remainingQuantity} units remaining in batch ${batchNumber}`
+        );
+      }
+
+      const newRemainingQuantity = batch.remainingQuantity - quantity;
+
+      batch.remainingQuantity = newRemainingQuantity;
+      await batch.save();
 
       return batch;
     } catch (error) {
