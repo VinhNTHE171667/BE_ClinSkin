@@ -525,3 +525,126 @@ export const updateOrderByUser = async (req, res) => {
     });
   }
 };
+
+export const updateStatusOrderByUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, cancelReason } = req.body;
+    const user = req.user;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Đơn hàng không tồn tại",
+      });
+    }
+
+    const allowedActions = {
+      cancelled: ["pending", "processing"],
+      pending: ["cancelled"],
+      delivered: ["shipping"],
+    };
+
+    if (!allowedActions[status]?.includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể thực hiện thao tác này",
+      });
+    }
+
+    // Store the current status before any changes
+    const currentStatus = order.status;
+
+    if (status === "cancelled") {
+      if (order.paymentMethod !== "cod") {
+        return res.status(400).json({
+          success: false,
+          message: "Đơn hàng đã thanh toán không thể hủy",
+        });
+      }
+
+      if (!cancelReason?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Vui lòng cung cấp lý do hủy đơn hàng",
+        });
+      }
+
+      const restoreResult = await restoreProductQuantity(order.products);
+      if (!restoreResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Không thể hoàn lại số lượng sản phẩm",
+        });
+      }
+
+      order.cancelReason = cancelReason.trim();
+      order.status = "cancelled";
+      order.statusHistory.push({
+        prevStatus: currentStatus,
+        status: "cancelled",
+        updatedBy: user._id,
+        updatedByModel: "User",
+        date: new Date(),
+      });
+    } else if (status === "pending") {
+      order.cancelReason = "";
+      order.status = "pending";
+      order.statusHistory.push({
+        prevStatus: currentStatus,
+        status: "pending",
+        updatedBy: user._id,
+        updatedByModel: "User",
+        date: new Date(),
+      });
+    } else if (status === "delivered") {
+      order.status = "delivered";
+      order.statusHistory.push({
+        prevStatus: currentStatus,
+        status: "delivered",
+        updatedBy: user._id,
+        updatedByModel: "User",
+        date: new Date(),
+      });
+    }
+
+    await order.save();
+
+    const populatedOrder = await Order.findById(order._id)
+      .populate("userId", "name email")
+      .populate({
+        path: "statusHistory.updatedBy",
+        select: "name email",
+        model: mongoose.model("User"),
+      });
+
+    let message = "";
+    switch (status) {
+      case "cancelled":
+        message = "Hủy đơn hàng thành công";
+        break;
+      case "pending":
+        message = "Đặt lại đơn hàng thành công";
+        break;
+      case "delivered":
+        message = "Xác nhận đã nhận hàng thành công";
+        break;
+      default:
+        message = "Cập nhật trạng thái đơn hàng thành công";
+    }
+
+    return res.status(200).json({
+      success: true,
+      message,
+      data: populatedOrder,
+    });
+  } catch (error) {
+    console.error("Update order error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi cập nhật đơn hàng",
+      error: error.message,
+    });
+  }
+};

@@ -5,6 +5,7 @@ import {
   createOrderCod,
   getOrderByUser,
   updateOrderByUser,
+  updateStatusOrderByUser,
 } from "../../controllers/orderController.js";
 import { validateMiddleWare } from "../../middleware/validate.middleware.js";
 
@@ -19,5 +20,6 @@ router.post(
 );
 router.get("/", authMiddlewareUser, getOrderByUser);
 router.put("/:id", authMiddlewareUser, updateOrderByUser);
+router.put("/status/:id", authMiddlewareUser, updateStatusOrderByUser);
 
 export default router;
