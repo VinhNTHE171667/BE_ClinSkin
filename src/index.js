@@ -5,7 +5,7 @@ import http from "http";
 import cors from "cors";
 import connectDabase from "./configs/database.js";
 import adminRoutes from "./routes/admins/index.js";
-import reviewRoutes from "./routes/review/review-route.js";
+import reviewRoutes from "./routes/admins/review.admin-route.js";
 import morgan from "morgan";
 import staffRoutes from "./routes/staffs/index.js";
 import session from "express-session";
