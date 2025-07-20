@@ -70,7 +70,6 @@ export const login = async (req, res) => {
     });
   }
 };
-// register
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -158,7 +157,6 @@ export const verifyOtp = async (req, res) => {
     });
   }
 };
-// send otp
 export const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -192,7 +190,6 @@ export const sendOtp = async (req, res) => {
     });
   }
 };
-// reset password
 export const resetPassword = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -220,7 +217,6 @@ export const resetPassword = async (req, res) => {
     });
   }
 };
-// get user
 export const getAccountUser = async (req, res) => {
   try {
     const userDetails = await User.findById(req.user._id).select(
