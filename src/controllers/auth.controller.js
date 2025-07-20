@@ -7,7 +7,6 @@ import { sendEmail } from "../configs/mail.js";
 import Admin from "../models/admin.model.js";
 import { uploadImage,deleteImage } from "../ultis/cloudinary.js";
 
-// Generate JWT
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, email: user.email },
@@ -16,7 +15,6 @@ const generateToken = (user) => {
   );
 };
 
-// Generate JWT
 const generateTokenAdmin = (admin) => {
   return jwt.sign(
     { id: admin._id, username: admin.username, role: admin.role },
@@ -38,7 +36,6 @@ const handleLoginResponse = (user, token) => {
     },
   };
 };
-// Login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -73,7 +70,6 @@ export const login = async (req, res) => {
     });
   }
 };
-// Register
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -117,7 +113,6 @@ export const register = async (req, res) => {
     });
   }
 };
-// Verify OTP
 export const verifyOtp = async (req, res) => {
   try {
     const { otp, email } = req.body;
@@ -163,7 +158,6 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
-// Send OTP
 export const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -198,7 +192,6 @@ export const sendOtp = async (req, res) => {
   }
 };
 
-// Reset Password
 export const resetPassword = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -227,7 +220,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// Get account
 export const getAccountUser = async (req, res) => {
   try {
     const userDetails = await User.findById(req.user._id).select(
@@ -253,7 +245,6 @@ export const getAccountUser = async (req, res) => {
   }
 };
 
-// Login admin
 export const loginAdmin = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -295,7 +286,6 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
-// Get account
 export const getAccountAdmin = async (req, res) => {
   try {
     const adminDetails = await Admin.findById(req.admin._id).select(
@@ -334,7 +324,6 @@ export const getAccountAdmin = async (req, res) => {
     });
   }
 };
-// Google
 export const googleCallback = async (req, res) => {
   try {
     const accessToken = generateToken(req.user);
