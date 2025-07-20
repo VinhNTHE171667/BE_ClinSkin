@@ -57,7 +57,6 @@ export const createCategory = async (req, res) => {
     try {
         const { name, parent } = req.body;
 
-        // Check if category already exists
         const existingCategory = await Category.findOne({ name }).lean();
         if (existingCategory) {
             return res.status(400).json({
@@ -69,7 +68,6 @@ export const createCategory = async (req, res) => {
         let level = 0;
         let parentCategory = null;
 
-        // If parent is provided, find it and set the level
         if (parent) {
             parentCategory = await Category.findById(parent);
             if (!parentCategory) {
@@ -81,7 +79,6 @@ export const createCategory = async (req, res) => {
             level = parentCategory.level + 1;
         }
 
-        // Create new category
         const newCategory = new Category({
             name,
             parent: parent || null,
@@ -119,7 +116,6 @@ export const deleteCategory = async (req, res) => {
             });
         }
 
-        // Check if the category has children
         const childrenCount = await Category.countDocuments({ parent: id });
 
         if (childrenCount > 0 && deleteChildren !== "true") {
@@ -130,17 +126,14 @@ export const deleteCategory = async (req, res) => {
         }
 
         if (deleteChildren === "true") {
-            // Delete all descendants recursively
             await deleteDescendants(id);
         } else {
-            // Move children to parent category
             await Category.updateMany(
                 { parent: id },
                 { $set: { parent: category.parent, level: category.level } }
             );
         }
 
-        // Delete the category
         await Category.findByIdAndDelete(id);
 
         return res.status(200).json({
@@ -178,7 +171,6 @@ export const updateCategory = async (req, res) => {
 
         if (parent !== undefined) {
             if (parent === null) {
-                // Moving to root level
                 category.parent = null;
                 category.level = 0;
             } else if (parent !== category.parent?.toString()) {
@@ -196,7 +188,6 @@ export const updateCategory = async (req, res) => {
 
         const updatedCategory = await category.save({ validateBeforeSave: false });
 
-        // Update levels of all child categories
         if (category.level !== updatedCategory.level) {
             await updateChildLevels(updatedCategory._id, updatedCategory.level);
         }
