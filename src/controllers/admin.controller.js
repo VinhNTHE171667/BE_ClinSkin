@@ -1,6 +1,7 @@
 import Admin from "../models/admin.model.js";
 import bcrypt from "bcryptjs";
 
+
 export const getAllAccountAdmin = async (req, res) => {
   try {
     const {

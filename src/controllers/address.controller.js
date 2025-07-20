@@ -1,5 +1,6 @@
 import Address from "../models/address.model.js";
 
+// Lay danh sach dia chi
 export const getAllAddress = async (req, res) => {
   try {
     const addresses = await Address.find().lean().exec();
@@ -17,6 +18,8 @@ export const getAllAddress = async (req, res) => {
   }
 };
 
+
+// Tao dia chi
 export const createAddress = async (req, res) => {
   try {
     const addressData = req.body;
@@ -45,6 +48,7 @@ export const createAddress = async (req, res) => {
   }
 };
 
+// Cap nhat dia chi
 export const updateAddress = async (req, res) => {
   try {
     const { id } = req.params;
@@ -108,6 +112,7 @@ export const setDefaultAddress = async (req, res) => {
   }
 };
 
+// Xoa dia chi
 export const deleteAddress = async (req, res) => {
   try {
     const { id } = req.params;
