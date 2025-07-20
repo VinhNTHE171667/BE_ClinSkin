@@ -2,7 +2,6 @@ import Admin from "../models/admin.model.js";
 import bcrypt from "bcryptjs";
 
 
-// get all admin
 export const getAllAccountAdmin = async (req, res) => {
   try {
     const {
@@ -71,7 +70,6 @@ export const getAllAccountAdmin = async (req, res) => {
   }
 };
 
-// create admin
 export const createAccountAdmin = async (req, res) => {
   try {
     const { name, username, password, role, avatar } = req.body;
@@ -120,7 +118,6 @@ export const createAccountAdmin = async (req, res) => {
   }
 };
 
-// update admin
 export const updateAccountAdmin = async (req, res) => {
   try {
     const { id } = req.params;
