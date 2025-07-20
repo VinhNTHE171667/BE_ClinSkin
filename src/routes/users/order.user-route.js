@@ -3,6 +3,7 @@ import { authMiddlewareUser } from "../../middleware/auth.middleware.js";
 import { createOrderValidate } from "../../validates/order.validate.js";
 import {
   createOrderCod,
+  getOrderByUser,
 } from "../../controllers/orderController.js";
 import { validateMiddleWare } from "../../middleware/validate.middleware.js";
 
@@ -15,5 +16,6 @@ router.post(
   validateMiddleWare,
   createOrderCod
 );
+router.get("/", authMiddlewareUser, getOrderByUser);
 
 export default router;

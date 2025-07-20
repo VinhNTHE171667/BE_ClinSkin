@@ -24,31 +24,25 @@ export const getAllOrders = async (req, res) => {
 
     const query = {};
 
- 
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       query.userId = userId;
     }
 
-   
     if (status) {
       query.status = status;
     }
 
-  
     if (paymentMethod) {
       query.paymentMethod = paymentMethod;
     }
 
-   
     if (note) {
-      query.note = { $regex: note, $options: 'i' }; 
+      query.note = { $regex: note, $options: "i" };
     }
-
 
     const pageNumber = Math.max(parseInt(page), 1);
     const pageSize = Math.max(parseInt(limit), 1);
 
-    
     const sortOption = {};
     const allowedSortFields = ["createdAt", "totalAmount"];
     const allowedOrder = ["asc", "desc"];
@@ -65,7 +59,6 @@ export const getAllOrders = async (req, res) => {
       };
     }
 
-  
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate("userId", "name email")
@@ -406,6 +399,86 @@ export const getOrderDetails = async (req, res) => {
       success: false,
       message: "Internal Server Error",
       error: error.message,
+    });
+  }
+};
+
+export const getOrderByUser = async (req, res) => {
+  try {
+    const user = req.user;
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const { status } = req.query;
+    const skip = (page - 1) * pageSize;
+
+    let statusCondition;
+    switch (status) {
+      case "pending":
+        statusCondition = "pending";
+        break;
+      case "processing":
+        statusCondition = "processing";
+        break;
+      case "shipping":
+        statusCondition = "shipping";
+        break;
+      case "delivered":
+        statusCondition = "delivered";
+        break;
+      case "cancelled":
+        statusCondition = "cancelled";
+        break;
+      default:
+        statusCondition = {
+          $in: ["pending", "processing", "shipping", "delivered", "cancelled"],
+        };
+    }
+
+    const [orders, total, counts] = await Promise.all([
+      Order.find({ userId: user._id, status: statusCondition })
+        .populate({
+          path: "statusHistory.updatedBy",
+          select: "name",
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(pageSize)),
+      Order.countDocuments({ userId: user._id, status: statusCondition }),
+      Order.aggregate([
+        { $match: { userId: user._id } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const statusCounts = {
+      pending: 0,
+      processing: 0,
+      shipping: 0,
+      delivered: 0,
+      cancelled: 0,
+    };
+
+    counts.forEach((item) => {
+      statusCounts[item._id] = item.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: orders,
+      pagination: {
+        page: Number(page),
+        totalPage: Math.ceil(total / pageSize),
+        totalItems: total,
+        pageSize,
+      },
+      statusCounts,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+      data: [],
     });
   }
 };
