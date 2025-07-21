@@ -186,7 +186,6 @@ export const createReview = async (req, res) => {
     const userId = req.user._id;
     console.log("req.body:", req.body);
     console.log("product", productId);
-    
 
     const dataProduct = await Product.findById(productId);
     if (!dataProduct) {
@@ -268,8 +267,9 @@ export const getReviewByProduct = async (req, res) => {
         data: [],
       });
     }
+    console.log("Found product:", product._id);
 
-    const baseFilter = { product: product._id, display: true };
+    const baseFilter = { productId: product._id };
     let filter = { ...baseFilter };
 
     if (rate) {
@@ -284,10 +284,18 @@ export const getReviewByProduct = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(pageSize);
 
+    const reviewsWithoutDisplayFilter = await Review.find({
+      product: product.productId,
+    });
+    console.log(
+      "Reviews without display filter:",
+      reviewsWithoutDisplayFilter.length
+    );
+
     const [reviews, total, allReviews] = await Promise.all([
       Review.find(filter)
         .populate({
-          path: "user",
+          path: "userId",
           select: "_id name email avatar",
         })
         .skip(skip)
@@ -296,6 +304,8 @@ export const getReviewByProduct = async (req, res) => {
       Review.countDocuments(filter),
       Review.find(baseFilter).select("rate"),
     ]);
+
+    console.log("Found reviews:", reviews);
 
     const rateDistribution = {
       1: 0,
