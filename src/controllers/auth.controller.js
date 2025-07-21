@@ -36,7 +36,7 @@ const handleLoginResponse = (user, token) => {
     },
   };
 };
-
+// login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -71,7 +71,7 @@ export const login = async (req, res) => {
     });
   }
 };
-
+// register
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -116,6 +116,7 @@ export const register = async (req, res) => {
   }
 };
 
+// verify otp
 export const verifyOtp = async (req, res) => {
   try {
     const { otp, email } = req.body;
@@ -160,7 +161,7 @@ export const verifyOtp = async (req, res) => {
     });
   }
 };
-
+// send otp
 export const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -195,6 +196,7 @@ export const sendOtp = async (req, res) => {
   }
 };
 
+//  reset password
 export const resetPassword = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -223,6 +225,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// get account
 export const getAccountUser = async (req, res) => {
   try {
     const userDetails = await User.findById(req.user._id).select(
@@ -289,7 +292,6 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
-
 export const getAccountAdmin = async (req, res) => {
   try {
     const adminDetails = await Admin.findById(req.admin._id).select(
@@ -328,7 +330,6 @@ export const getAccountAdmin = async (req, res) => {
     });
   }
 };
-
 export const googleCallback = async (req, res) => {
   try {
     const accessToken = generateToken(req.user);

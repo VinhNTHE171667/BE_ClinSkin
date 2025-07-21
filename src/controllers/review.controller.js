@@ -34,7 +34,6 @@ export const getReview = async (req, res) => {
   }
 };
 
-
 export const updateReplyByAdmin = async (req, res) => {
   try {
     const { id } = req.params;
