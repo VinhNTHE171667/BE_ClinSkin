@@ -3,6 +3,10 @@ import { authMiddlewareUser } from "../../middleware/auth.middleware.js";
 import { createOrderValidate } from "../../validates/order.validate.js";
 import {
   createOrderCod,
+  getOrderByUser,
+  getOrderDetailByUser,
+  updateOrderByUser,
+  updateStatusOrderByUser,
 } from "../../controllers/orderController.js";
 import { validateMiddleWare } from "../../middleware/validate.middleware.js";
 
@@ -15,5 +19,9 @@ router.post(
   validateMiddleWare,
   createOrderCod
 );
+router.get("/", authMiddlewareUser, getOrderByUser);
+router.get("/detail/:id", authMiddlewareUser, getOrderDetailByUser);
+router.put("/:id", authMiddlewareUser, updateOrderByUser);
+router.put("/status/:id", authMiddlewareUser, updateStatusOrderByUser);
 
 export default router;

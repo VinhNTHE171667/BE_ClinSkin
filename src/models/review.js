@@ -1,27 +1,39 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 export const reviewSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     productId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
+      ref: "Product",
       required: true,
+    },
+    order: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      default: null,
     },
     rate: {
       type: Number,
       required: true,
-      min: 0,
-      max: 5,
+      enum: [1, 2, 3, 4, 5],
     },
-    images: {
-      type: [String], 
-      default: [],
-    },
+    images: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        publicId: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
     comment: {
       type: String,
       required: true,
@@ -32,14 +44,14 @@ export const reviewSchema = new mongoose.Schema(
     },
     reply: {
       type: String,
-      default: '',
+      default: "",
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 
-const Review = mongoose.model('Reviews', reviewSchema);
+const Review = mongoose.model("Reviews", reviewSchema);
 
 export default Review;
