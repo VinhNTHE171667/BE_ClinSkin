@@ -9,6 +9,7 @@ import promotionRoutes from "./promotion.user-route.js";
 
 import notificationRoutes from "./notification.user-route.js";
 import addressRoutes from "./address.user-route.js";
+import reviewRoutes from "./review.user-route.js";
 
 
 const router = express.Router();
@@ -23,5 +24,6 @@ router.use("/promotion", promotionRoutes);
 
 router.use("/notifications", notificationRoutes);
 router.use("/address", addressRoutes);
+router.use("/reviews", reviewRoutes);
 
 export default router;
