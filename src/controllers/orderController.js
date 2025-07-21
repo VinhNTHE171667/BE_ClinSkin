@@ -639,6 +639,12 @@ export const updateStatusOrderByUser = async (req, res) => {
         date: new Date(),
       });
     } else if (status === "delivered") {
+      // Khi user xác nhận đã nhận hàng, cập nhật isCompleted = true trong ProductSalesHistory
+      await ProductSalesHistory.updateMany(
+        { orderId: id },
+        { isCompleted: true }
+      );
+      
       order.status = "delivered";
       order.statusHistory.push({
         prevStatus: currentStatus,
