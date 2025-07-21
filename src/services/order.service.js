@@ -441,6 +441,37 @@ export const calculateOrderAmount = async (
   };
 };
 
+// export const restoreProductQuantity = async (orderProducts) => {
+//   try {
+//     if (!Array.isArray(orderProducts) || orderProducts.length === 0) {
+//       return {
+//         success: false,
+//         message: "Không có sản phẩm để hoàn lại số lượng",
+//       };
+//     }
+
+//     const bulkOps = orderProducts.map((product) => ({
+//       updateOne: {
+//         filter: {
+//           _id: product.productId,
+//         },
+//         update: {
+//           $inc: {
+//             "variants.$.quantity": product.quantity,
+//             totalQuantity: product.quantity,
+//           },
+//         },
+//       },
+//     }));
+
+//     const result = await Product.bulkWrite(bulkOps);
+//     return { success: true, modifiedCount: result.modifiedCount };
+//   } catch (error) {
+//     console.error("Lỗi khi hoàn lại số lượng sản phẩm:", error);
+//     return { success: false, error: error.message };
+//   }
+// };
+
 export const restoreProductQuantity = async (orderProducts) => {
   try {
     if (!Array.isArray(orderProducts) || orderProducts.length === 0) {
@@ -453,23 +484,29 @@ export const restoreProductQuantity = async (orderProducts) => {
     const bulkOps = orderProducts.map((product) => ({
       updateOne: {
         filter: {
-          _id: product.productId,
-          "variants.color.code": product.color.code,
+          _id: product.pid,
         },
         update: {
           $inc: {
-            "variants.$.quantity": product.quantity,
-            totalQuantity: product.quantity,
+            currentStock: product.quantity,
           },
         },
       },
     }));
 
     const result = await Product.bulkWrite(bulkOps);
-    return { success: true, modifiedCount: result.modifiedCount };
+    return {
+      success: true,
+      modifiedCount: result.modifiedCount,
+      message: `Đã hoàn lại số lượng cho ${result.modifiedCount} sản phẩm`,
+    };
   } catch (error) {
     console.error("Lỗi khi hoàn lại số lượng sản phẩm:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error.message,
+      message: "Có lỗi xảy ra khi hoàn lại số lượng sản phẩm",
+    };
   }
 };
 
