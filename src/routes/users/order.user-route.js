@@ -4,6 +4,7 @@ import { createOrderValidate } from "../../validates/order.validate.js";
 import {
   createOrderCod,
   getOrderByUser,
+  getOrderDetailByUser,
   updateOrderByUser,
   updateStatusOrderByUser,
 } from "../../controllers/orderController.js";
@@ -19,6 +20,7 @@ router.post(
   createOrderCod
 );
 router.get("/", authMiddlewareUser, getOrderByUser);
+router.get("/detail/:id", authMiddlewareUser, getOrderDetailByUser);
 router.put("/:id", authMiddlewareUser, updateOrderByUser);
 router.put("/status/:id", authMiddlewareUser, updateStatusOrderByUser);
 

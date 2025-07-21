@@ -648,3 +648,36 @@ export const updateStatusOrderByUser = async (req, res) => {
     });
   }
 };
+
+export const getOrderDetailByUser = async (req, res) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const order = await Order.findOne({
+      _id: id,
+      userId: user._id,
+    }).populate({
+      path: "statusHistory.updatedBy",
+      select: "name",
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: "Không tìm thấy đơn hàng",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    console.log("Error get order detail", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
