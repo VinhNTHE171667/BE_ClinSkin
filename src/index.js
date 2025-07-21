@@ -15,6 +15,7 @@ import { googleCallback } from "./controllers/auth.controller.js";
 import { saveUser } from "./services/user.service.js";
 import User from "./models/user.model.js";
 import { app, server } from "./websocket/index.js";
+import { initCronJobs } from "./cronjobs/stockUpdate.cron.js";
 
 dotenv.config();
 
@@ -119,5 +120,8 @@ app.use("/api/v1/admin/reviews", reviewRoutes);
 app.use("/api/v1/admin", staffRoutes);
 server.listen(PORT, async () => {
   await connectDabase();
+  
+  initCronJobs();
+  
   console.log(`🚀-------------SERVER RUN PORT ${PORT}-------------🚀`);
 });
