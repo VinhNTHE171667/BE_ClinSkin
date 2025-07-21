@@ -1,4 +1,5 @@
 import Review from "../models/review.js";
+// get review
 export const getReview = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -33,7 +34,7 @@ export const getReview = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
+// update reply
 export const updateReplyByAdmin = async (req, res) => {
   try {
     const { id } = req.params;
