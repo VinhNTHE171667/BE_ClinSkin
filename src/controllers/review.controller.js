@@ -1,4 +1,6 @@
 import Review from "../models/review.js";
+// get review
+export const getReview = async (req, res) => {
 import Product from "../models/product.js";
 import Order from "../models/order.js";
 
@@ -39,6 +41,8 @@ export const updateReview = async (req, res) => {
     });
   }
 };
+// update reply
+export const updateReplyByAdmin = async (req, res) => {
 
 export const removeReview = async (req, res) => {
   try {
