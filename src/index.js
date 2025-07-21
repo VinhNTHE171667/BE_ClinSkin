@@ -5,7 +5,7 @@ import http from "http";
 import cors from "cors";
 import connectDabase from "./configs/database.js";
 import adminRoutes from "./routes/admins/index.js";
-import reviewRoutes from "./routes/review/review-route.js";
+import reviewRoutes from "./routes/admins/review.admin-route.js";
 import morgan from "morgan";
 import staffRoutes from "./routes/staffs/index.js";
 import session from "express-session";
@@ -15,6 +15,7 @@ import { googleCallback } from "./controllers/auth.controller.js";
 import { saveUser } from "./services/user.service.js";
 import User from "./models/user.model.js";
 import { app, server } from "./websocket/index.js";
+import { initCronJobs } from "./cronjobs/stockUpdate.cron.js";
 
 dotenv.config();
 
@@ -119,5 +120,8 @@ app.use("/api/v1/admin/reviews", reviewRoutes);
 app.use("/api/v1/admin", staffRoutes);
 server.listen(PORT, async () => {
   await connectDabase();
+  
+  initCronJobs();
+  
   console.log(`🚀-------------SERVER RUN PORT ${PORT}-------------🚀`);
 });

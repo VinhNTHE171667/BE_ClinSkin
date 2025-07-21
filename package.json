@@ -28,6 +28,7 @@
     "mongoose": "^8.15.1",
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.3",
     "passport": "^0.7.0",
     "passport-google-oauth2": "^0.2.0",
@@ -38,6 +39,7 @@
     "wdp301_prj": "file:"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "nodemon": "^3.1.10"
   }
 }
