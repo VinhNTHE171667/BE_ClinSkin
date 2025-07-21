@@ -1,6 +1,7 @@
 import Brand from "../models/brand.model.js";
 import slugify from "slugify";
 
+// getAllBrand
 export const getAllBrand = async (req, res) => {
     try {
         const { page, pageSize, name } = req.query;
@@ -50,6 +51,7 @@ export const getAllBrand = async (req, res) => {
     }
 };
 
+// createBrand
 export const createBrand = async (req, res) => {
     try {
         const { name } = req.body;
@@ -86,6 +88,7 @@ export const createBrand = async (req, res) => {
     }
 };
 
+// updateBrand
 export const updateBrand = async (req, res) => {
     try {
         const { id } = req.params;
@@ -130,7 +133,6 @@ export const updateBrand = async (req, res) => {
     }
 };
 
-// Delete a brand
 export const deleteBrand = async (req, res) => {
     try {
         const { id } = req.params;

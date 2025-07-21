@@ -1,6 +1,7 @@
 import inventoryBatchService from '../services/inventoryBatch.service.js';
 import { StatusCodes } from 'http-status-codes';
 
+// Tạo mới một batch
 export const createBatch = async (req, res) => {
   try {
     const batchData = req.body;
@@ -20,7 +21,7 @@ export const createBatch = async (req, res) => {
     });
   }
 };
-
+// Lấy tất cả các batch
 export const getAllBatches = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -70,7 +71,7 @@ export const getAllBatches = async (req, res) => {
     });
   }
 };
-
+// Lấy một batch theo số lô
 export const getBatchByNumber = async (req, res) => {
   try {
     const batchNumber = req.params.batchNumber;
@@ -95,7 +96,7 @@ export const getBatchByNumber = async (req, res) => {
     });
   }
 };
-
+// Lấy tất cả các batch của một sản phẩm
 export const getBatchesByProductId = async (req, res) => {
   try {
     const productId = req.params.productId;
@@ -113,7 +114,7 @@ export const getBatchesByProductId = async (req, res) => {
     });
   }
 };
-
+// Cập nhật một batch
 export const updateBatch = async (req, res) => {
   try {
     const { batchNumber } = req.params;
@@ -134,7 +135,7 @@ export const updateBatch = async (req, res) => {
   }
 };
 
-
+// Xóa một batch
 export const deleteBatch = async (req, res) => {
   try {
     const { batchNumber } = req.params;

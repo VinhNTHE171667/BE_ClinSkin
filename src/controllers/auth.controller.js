@@ -7,7 +7,6 @@ import { sendEmail } from "../configs/mail.js";
 import Admin from "../models/admin.model.js";
 import { uploadImage,deleteImage } from "../ultis/cloudinary.js";
 
-// Generate token
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, email: user.email },
@@ -23,7 +22,7 @@ const generateTokenAdmin = (admin) => {
     { expiresIn: process.env.JWT_EXPIRES_IN }
   );
 };
-// Generate response
+
 const handleLoginResponse = (user, token) => {
   return {
     success: true,
@@ -37,7 +36,7 @@ const handleLoginResponse = (user, token) => {
     },
   };
 };
-// Login
+// login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -72,7 +71,7 @@ export const login = async (req, res) => {
     });
   }
 };
-// Register
+// register
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -116,7 +115,8 @@ export const register = async (req, res) => {
     });
   }
 };
-// Verify OTP
+
+// verify otp
 export const verifyOtp = async (req, res) => {
   try {
     const { otp, email } = req.body;
@@ -161,7 +161,7 @@ export const verifyOtp = async (req, res) => {
     });
   }
 };
-// Send OTP
+// send otp
 export const sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -195,7 +195,8 @@ export const sendOtp = async (req, res) => {
     });
   }
 };
-// Reset password
+
+//  reset password
 export const resetPassword = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -223,7 +224,8 @@ export const resetPassword = async (req, res) => {
     });
   }
 };
-// Get current user
+
+// get account
 export const getAccountUser = async (req, res) => {
   try {
     const userDetails = await User.findById(req.user._id).select(
@@ -248,7 +250,7 @@ export const getAccountUser = async (req, res) => {
     });
   }
 };
-// Login admin
+
 export const loginAdmin = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -290,7 +292,6 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
-// Get current admin
 export const getAccountAdmin = async (req, res) => {
   try {
     const adminDetails = await Admin.findById(req.admin._id).select(
@@ -329,7 +330,6 @@ export const getAccountAdmin = async (req, res) => {
     });
   }
 };
-// Google
 export const googleCallback = async (req, res) => {
   try {
     const accessToken = generateToken(req.user);
@@ -338,7 +338,6 @@ export const googleCallback = async (req, res) => {
     return res.redirect(`${process.env.FRONT_END_URL}/auth?error=server_error`);
   }
 };
-// Update profile
 export const updateProfileAdmin = async (req, res) => {
   try {
     const admin = await Admin.findById(req.admin._id); 
