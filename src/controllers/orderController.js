@@ -172,7 +172,7 @@ export const createOrderCod = async (req, res) => {
     });
   }
 };
-
+// Cập nhật trạng thái đơn hàng
 export const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -200,7 +200,7 @@ export const updateOrder = async (req, res) => {
     });
   }
 };
-
+// GET /api/orders
 export const getOrderByAdmin = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -259,7 +259,7 @@ export const getOrderByAdmin = async (req, res) => {
     });
   }
 };
-
+// PUT /api/orders/:id
 export const updateStatusOrderByAdmin = async (req, res) => {
   try {
     const { id } = req.params;

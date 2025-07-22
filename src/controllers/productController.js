@@ -98,6 +98,7 @@ export const getProducts = async (req, res) => {
     });
   }
 };
+// get product by id
 
 export const getProductById = async (req, res) => {
   try {
@@ -373,7 +374,7 @@ export const restoreProduct = async (req, res) => {
     });
   }
 };
-
+// lay san pham
 export const getProductByPromotionAdd = async (req, res) => {
   try {
     console.log("kkkkkkkkkkkkkkkkkkkkk");
