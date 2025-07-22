@@ -6,6 +6,7 @@ const escapeRegex = (string) => {
   return string.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 };
 
+// update review
 export const updateReview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -40,6 +41,7 @@ export const updateReview = async (req, res) => {
   }
 };
 
+// delete review
 export const removeReview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -66,6 +68,7 @@ export const removeReview = async (req, res) => {
   }
 };
 
+// get all review
 export const getReviewByAdmin = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -180,6 +183,7 @@ export const getReviewByAdmin = async (req, res) => {
   }
 };
 
+// create review
 export const createReview = async (req, res) => {
   try {
     const { order, productId, rate, comment, images } = req.body;
@@ -254,6 +258,7 @@ export const createReview = async (req, res) => {
   }
 };
 
+// get review
 export const getReviewByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
