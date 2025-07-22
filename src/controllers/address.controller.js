@@ -3,7 +3,8 @@ import Address from "../models/address.model.js";
 // Lay danh sach dia chi
 export const getAllAddress = async (req, res) => {
   try {
-    const addresses = await Address.find().lean().exec();
+    const userId = req.user._id;
+    const addresses = await Address.find({ userId }).lean().exec();
     return res.status(200).json({
       success: true,
       data: addresses,
@@ -22,12 +23,13 @@ export const getAllAddress = async (req, res) => {
 // Tao dia chi
 export const createAddress = async (req, res) => {
   try {
-    const addressData = req.body;
+    const userId = req.user._id;
+    const addressData = { ...req.body, userId };
 
     // Nếu địa chỉ mới được đặt làm mặc định
     if (addressData.isDefault) {
-      // Bỏ mặc định của tất cả địa chỉ khác
-      await Address.updateMany({ isDefault: true }, { isDefault: false });
+      // Bỏ mặc định của tất cả địa chỉ khác của user này
+      await Address.updateMany({ userId, isDefault: true }, { isDefault: false });
     }
 
     const newAddress = new Address(addressData);
@@ -52,13 +54,23 @@ export const createAddress = async (req, res) => {
 export const updateAddress = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user._id;
     const updateData = req.body;
+
+    // Kiểm tra địa chỉ có thuộc về user này không
+    const existingAddress = await Address.findOne({ _id: id, userId });
+    if (!existingAddress) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy địa chỉ hoặc bạn không có quyền sửa địa chỉ này",
+      });
+    }
 
     // Nếu địa chỉ được đặt làm mặc định
     if (updateData.isDefault) {
-      // Bỏ mặc định của tất cả địa chỉ khác (trừ địa chỉ hiện tại)
+      // Bỏ mặc định của tất cả địa chỉ khác của user này (trừ địa chỉ hiện tại)
       await Address.updateMany(
-        { _id: { $ne: id }, isDefault: true },
+        { userId, _id: { $ne: id }, isDefault: true },
         { isDefault: false }
       );
     }
@@ -86,9 +98,19 @@ export const updateAddress = async (req, res) => {
 export const setDefaultAddress = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user._id;
 
-    // Bỏ mặc định của tất cả địa chỉ
-    await Address.updateMany({ isDefault: true }, { isDefault: false });
+    // Kiểm tra địa chỉ có thuộc về user này không
+    const existingAddress = await Address.findOne({ _id: id, userId });
+    if (!existingAddress) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy địa chỉ hoặc bạn không có quyền thay đổi địa chỉ này",
+      });
+    }
+
+    // Bỏ mặc định của tất cả địa chỉ của user này
+    await Address.updateMany({ userId, isDefault: true }, { isDefault: false });
 
     // Đặt địa chỉ được chọn làm mặc định
     const updatedAddress = await Address.findByIdAndUpdate(
@@ -116,6 +138,17 @@ export const setDefaultAddress = async (req, res) => {
 export const deleteAddress = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user._id;
+
+    // Kiểm tra địa chỉ có thuộc về user này không
+    const existingAddress = await Address.findOne({ _id: id, userId });
+    if (!existingAddress) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy địa chỉ hoặc bạn không có quyền xóa địa chỉ này",
+      });
+    }
+
     await Address.findByIdAndDelete(id);
     return res.status(200).json({
       success: true,

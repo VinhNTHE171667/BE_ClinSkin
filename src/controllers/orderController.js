@@ -1,5 +1,6 @@
 import Order from "../models/order.js";
 import User from "../models/user.model.js";
+import ProductSalesHistory from "../models/ProductSalesHistory.model.js";
 import mongoose from "mongoose";
 import {
   calculateOrderAmount,
@@ -7,6 +8,7 @@ import {
   updateProductInventory,
   validateOrder,
 } from "../services/order.service.js";
+import inventoryBatchService from "../services/inventoryBatch.service.js";
 
 // GET /api/orders
 export const getAllOrders = async (req, res) => {
@@ -25,31 +27,25 @@ export const getAllOrders = async (req, res) => {
 
     const query = {};
 
- 
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       query.userId = userId;
     }
 
-   
     if (status) {
       query.status = status;
     }
 
-  
     if (paymentMethod) {
       query.paymentMethod = paymentMethod;
     }
 
-   
     if (note) {
-      query.note = { $regex: note, $options: 'i' }; 
+      query.note = { $regex: note, $options: "i" };
     }
-
 
     const pageNumber = Math.max(parseInt(page), 1);
     const pageSize = Math.max(parseInt(limit), 1);
 
-    
     const sortOption = {};
     const allowedSortFields = ["createdAt", "totalAmount"];
     const allowedOrder = ["asc", "desc"];
@@ -66,7 +62,6 @@ export const getAllOrders = async (req, res) => {
       };
     }
 
-  
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate("userId", "name email")
@@ -307,6 +302,14 @@ export const updateStatusOrderByAdmin = async (req, res) => {
     }
 
     switch (status) {
+      case "delivered":
+        // Khi giao hàng thành công, cập nhật isCompleted = true trong ProductSalesHistory
+        await ProductSalesHistory.updateMany(
+          { orderId: id },
+          { isCompleted: true }
+        );
+        break;
+
       case "cancelled":
         if (!cancelReason?.trim()) {
           return res.status(400).json({
@@ -315,13 +318,43 @@ export const updateStatusOrderByAdmin = async (req, res) => {
           });
         }
 
+        // Xử lý hoàn trả khi hủy đơn hàng
         if (["pending", "processing"].includes(order.status)) {
+          // Đơn hàng chưa tạo sales history, chỉ hoàn trả currentStock của Product
           const restoreResult = await restoreProductQuantity(order.products);
           if (!restoreResult.success) {
             return res.status(400).json({
               success: false,
               message: "Không thể hoàn lại số lượng sản phẩm",
             });
+          }
+        } else if (["shipping", "delivered"].includes(order.status)) {
+          // Đơn hàng đã tạo sales history, cần hoàn trả vào inventory batch
+          const salesHistories = await ProductSalesHistory.find({ orderId: id });
+          
+          for (const salesHistory of salesHistories) {
+            // Hoàn trả số lượng vào từng batch theo costDetails
+            for (const costDetail of salesHistory.costDetails) {
+              try {
+                // Tìm batch và cộng lại số lượng
+                const batch = await inventoryBatchService.getBatchByNumber(costDetail.batchNumber);
+                if (batch) {
+                  // Chỉ cập nhật remainingQuantity, cộng lại số lượng đã bán
+                  await inventoryBatchService.updateBatch(
+                    costDetail.batchNumber,
+                    undefined, // Không thay đổi total quantity
+                    undefined, // Không thay đổi expiry date
+                    batch.remainingQuantity + costDetail.quantityTaken // Cộng lại remaining quantity
+                  );
+                }
+              } catch (error) {
+                console.error(`Lỗi khi hoàn trả batch ${costDetail.batchNumber}:`, error);
+              }
+            }
+            
+            // Cập nhật isCompleted = false
+            salesHistory.isCompleted = false;
+            await salesHistory.save();
           }
         }
 
@@ -407,6 +440,285 @@ export const getOrderDetails = async (req, res) => {
       success: false,
       message: "Internal Server Error",
       error: error.message,
+    });
+  }
+};
+
+export const getOrderByUser = async (req, res) => {
+  try {
+    const user = req.user;
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const { status } = req.query;
+    const skip = (page - 1) * pageSize;
+
+    let statusCondition;
+    switch (status) {
+      case "pending":
+        statusCondition = "pending";
+        break;
+      case "processing":
+        statusCondition = "processing";
+        break;
+      case "shipping":
+        statusCondition = "shipping";
+        break;
+      case "delivered":
+        statusCondition = "delivered";
+        break;
+      case "cancelled":
+        statusCondition = "cancelled";
+        break;
+      default:
+        statusCondition = {
+          $in: ["pending", "processing", "shipping", "delivered", "cancelled"],
+        };
+    }
+
+    const [orders, total, counts] = await Promise.all([
+      Order.find({ userId: user._id, status: statusCondition })
+        .populate({
+          path: "statusHistory.updatedBy",
+          select: "name",
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(pageSize)),
+      Order.countDocuments({ userId: user._id, status: statusCondition }),
+      Order.aggregate([
+        { $match: { userId: user._id } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const statusCounts = {
+      pending: 0,
+      processing: 0,
+      shipping: 0,
+      delivered: 0,
+      cancelled: 0,
+    };
+
+    counts.forEach((item) => {
+      statusCounts[item._id] = item.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: orders,
+      pagination: {
+        page: Number(page),
+        totalPage: Math.ceil(total / pageSize),
+        totalItems: total,
+        pageSize,
+      },
+      statusCounts,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+      data: [],
+    });
+  }
+};
+
+export const updateOrderByUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+    const { name, province, district, ward, phone, addressDetail } = req.body;
+    const order = await Order.findOne({
+      _id: id,
+      userId: user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Đơn hàng không tồn tại",
+      });
+    }
+
+    Object.assign(order, {
+      ...(name && { name }),
+      ...(province?.id && { province }),
+      ...(district?.id && { district }),
+      ...(ward?.id && { ward }),
+      ...(phone && { phone }),
+      ...(addressDetail && { addressDetail }),
+    });
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật đơn hàng thành công",
+      data: order,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi cập nhật đơn hàng",
+      error: error.message,
+    });
+  }
+};
+
+export const updateStatusOrderByUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, cancelReason } = req.body;
+    const user = req.user;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Đơn hàng không tồn tại",
+      });
+    }
+
+    const allowedActions = {
+      cancelled: ["pending", "processing"],
+      pending: ["cancelled"],
+      delivered: ["shipping"],
+    };
+
+    if (!allowedActions[status]?.includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể thực hiện thao tác này",
+      });
+    }
+
+    // Store the current status before any changes
+    const currentStatus = order.status;
+
+    if (status === "cancelled") {
+      if (order.paymentMethod !== "cod") {
+        return res.status(400).json({
+          success: false,
+          message: "Đơn hàng đã thanh toán không thể hủy",
+        });
+      }
+
+      if (!cancelReason?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Vui lòng cung cấp lý do hủy đơn hàng",
+        });
+      }
+
+      const restoreResult = await restoreProductQuantity(order.products);
+      if (!restoreResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Không thể hoàn lại số lượng sản phẩm",
+        });
+      }
+
+      order.cancelReason = cancelReason.trim();
+      order.status = "cancelled";
+      order.statusHistory.push({
+        prevStatus: currentStatus,
+        status: "cancelled",
+        updatedBy: user._id,
+        updatedByModel: "User",
+        date: new Date(),
+      });
+    } else if (status === "pending") {
+      order.cancelReason = "";
+      order.status = "pending";
+      order.statusHistory.push({
+        prevStatus: currentStatus,
+        status: "pending",
+        updatedBy: user._id,
+        updatedByModel: "User",
+        date: new Date(),
+      });
+    } else if (status === "delivered") {
+      order.status = "delivered";
+      order.statusHistory.push({
+        prevStatus: currentStatus,
+        status: "delivered",
+        updatedBy: user._id,
+        updatedByModel: "User",
+        date: new Date(),
+      });
+    }
+
+    await order.save();
+
+    const populatedOrder = await Order.findById(order._id)
+      .populate("userId", "name email")
+      .populate({
+        path: "statusHistory.updatedBy",
+        select: "name email",
+        model: mongoose.model("User"),
+      });
+
+    let message = "";
+    switch (status) {
+      case "cancelled":
+        message = "Hủy đơn hàng thành công";
+        break;
+      case "pending":
+        message = "Đặt lại đơn hàng thành công";
+        break;
+      case "delivered":
+        message = "Xác nhận đã nhận hàng thành công";
+        break;
+      default:
+        message = "Cập nhật trạng thái đơn hàng thành công";
+    }
+
+    return res.status(200).json({
+      success: true,
+      message,
+      data: populatedOrder,
+    });
+  } catch (error) {
+    console.error("Update order error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi cập nhật đơn hàng",
+      error: error.message,
+    });
+  }
+};
+
+export const getOrderDetailByUser = async (req, res) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const order = await Order.findOne({
+      _id: id,
+      userId: user._id,
+    }).populate({
+      path: "statusHistory.updatedBy",
+      select: "name",
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        message: "Không tìm thấy đơn hàng",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    console.log("Error get order detail", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

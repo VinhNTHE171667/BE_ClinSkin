@@ -10,6 +10,11 @@ import Product from "../models/product.js";
 import Brand from "../models/brand.model.js";
 import Category from "../models/category.model.js";
 import mongoose from "mongoose";
+import {
+  getReviewFieldsStagePro,
+  getReviewLookupStagePro,
+} from "../helpers/review.helper.js";
+import { getFullProjectStage } from "../helpers/product.projection.js";
 
 const getTagTitle = (tag) => {
   switch (tag) {
@@ -143,6 +148,7 @@ export const getProductHome = async (req, res) => {
 export const getProductDetailBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
+    const currentDate = new Date();
 
     const product = await Product.aggregate([
       {
@@ -152,7 +158,15 @@ export const getProductDetailBySlug = async (req, res) => {
         },
       },
 
+      getPromotionLookupStage(currentDate),
+      getPromotionFieldsStage(),
+      getReviewLookupStagePro(),
+      getReviewFieldsStagePro(),
+
       ...brandAndCategoryInfo,
+
+      // Project all fields
+      getFullProjectStage(),
     ]);
 
     if (product.length === 0) {

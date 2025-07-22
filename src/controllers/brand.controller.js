@@ -132,7 +132,7 @@ export const updateBrand = async (req, res) => {
         });
     }
 };
-
+// deleteBrand
 export const deleteBrand = async (req, res) => {
     try {
         const { id } = req.params;

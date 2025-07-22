@@ -4,6 +4,7 @@ import OrderService from "../services/order.service.js";
 import UserService from "../services/user.service.js";
 import ReviewService from "../services/review.service.js";
 
+// lấy thống trong tháng cụ thể trong năm
 export const getProductsWithNearExpiryBatches = async (req, res) => {
     try {
         const { days, page, pageSize } = req.query;
@@ -388,6 +389,191 @@ export const getYearlyReviewStatsLastFiveYears = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Có lỗi xảy ra khi lấy thống kê đánh giá 5 năm gần nhất",
+            error: error.message
+        });
+    }
+};
+
+// Lấy danh sách sản phẩm bán chạy nhất theo tháng
+export const getBestSellingProductsByMonth = async (req, res) => {
+    try {
+        const { year, month } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+
+        const yearNum = parseInt(year);
+        const monthNum = parseInt(month);
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+
+        if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm và tháng không hợp lệ"
+            });
+        }
+
+        if (isNaN(pageNum) || pageNum < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Số trang không hợp lệ"
+            });
+        }
+
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+            return res.status(400).json({
+                success: false,
+                message: "Số lượng sản phẩm mỗi trang phải từ 1-100"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getBestSellingProductsByMonth(
+            yearNum, 
+            monthNum, 
+            pageNum, 
+            limitNum
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Lấy danh sách sản phẩm bán chạy nhất thành công",
+            data: result.products,
+            pagination: result.pagination,
+            summary: result.summary
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách sản phẩm bán chạy nhất:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy danh sách sản phẩm bán chạy nhất",
+            error: error.message
+        });
+    }
+};
+
+// Lấy danh sách sản phẩm bán chạy nhất theo năm
+export const getBestSellingProductsByYear = async (req, res) => {
+    try {
+        const { year } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+
+        const yearNum = parseInt(year);
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+
+        if (isNaN(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm không hợp lệ"
+            });
+        }
+
+        if (isNaN(pageNum) || pageNum < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Số trang không hợp lệ"
+            });
+        }
+
+        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+            return res.status(400).json({
+                success: false,
+                message: "Số lượng sản phẩm mỗi trang phải từ 1-100"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getBestSellingProductsByYear(
+            yearNum, 
+            pageNum, 
+            limitNum
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Lấy danh sách sản phẩm bán chạy nhất theo năm thành công",
+            data: result.products,
+            pagination: result.pagination,
+            summary: result.summary
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách sản phẩm bán chạy nhất theo năm:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy danh sách sản phẩm bán chạy nhất theo năm",
+            error: error.message
+        });
+    }
+};
+
+export const getProductLineChartByYear = async (req, res) => {
+    try {
+        const { productId, year } = req.params;
+
+        const yearNum = parseInt(year);
+
+        if (isNaN(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear()) {
+            return res.status(400).json({
+                success: false,
+                message: "Năm không hợp lệ"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getProductLineChartByYear(
+            productId, 
+            yearNum
+        );
+
+        if (!result.productInfo) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy dữ liệu cho sản phẩm này"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Lấy thống kê lineChart sản phẩm thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê lineChart sản phẩm:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy thống kê lineChart sản phẩm",
+            error: error.message
+        });
+    }
+};
+
+export const getProductLineChartByLastFiveYears = async (req, res) => {
+    try {
+        const { productId } = req.params;
+
+        if (!productId) {
+            return res.status(400).json({
+                success: false,
+                message: "Vui lòng cung cấp productId"
+            });
+        }
+
+        const result = await ProductSalesHistoryService.getProductLineChartByLastFiveYears(productId);
+
+        if (!result.productInfo) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy dữ liệu cho sản phẩm này"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Lấy thống kê lineChart sản phẩm 5 năm gần nhất thành công",
+            data: result
+        });
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê lineChart sản phẩm 5 năm gần nhất:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Có lỗi xảy ra khi lấy thống kê lineChart sản phẩm 5 năm gần nhất",
             error: error.message
         });
     }
