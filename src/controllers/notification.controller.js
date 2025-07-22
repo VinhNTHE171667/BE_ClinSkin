@@ -13,23 +13,6 @@ export const getNotificationsByUser = async (req, res) => {
       type,
     };
 
-    // Debug: Check all notifications for this user
-    const allUserNotifications = await Notification.find({
-      recipient: user._id,
-      model: "User",
-    }).select("type title createdAt");
-
-    console.log(
-      "All user notifications:",
-      JSON.stringify(allUserNotifications, null, 2)
-    );
-
-    // Debug: Check specific filter
-    const specificFilterResult = await Notification.find(filter).select(
-      "type title"
-    );
-    console.log("Specific filter result:", specificFilterResult);
-
     const [notifications, total] = await Promise.all([
       Notification.find(filter)
         .sort({ createdAt: -1 })
@@ -38,20 +21,6 @@ export const getNotificationsByUser = async (req, res) => {
         .lean(),
       Notification.countDocuments(filter),
     ]);
-
-    const allNotifications = await Notification.find({})
-      .select("recipient model type title")
-      .limit(5);
-    console.log("Sample notifications in database:", allNotifications);
-
-    const userNotifications = await Notification.find({
-      recipient: user._id,
-      model: "User",
-    });
-    console.log(
-      "All notifications for this user (no type filter):",
-      userNotifications.length
-    );
 
     const unreadCount = await Notification.countDocuments({
       ...filter,
