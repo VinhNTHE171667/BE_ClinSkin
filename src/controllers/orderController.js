@@ -10,6 +10,7 @@ import {
 } from "../services/order.service.js";
 import inventoryBatchService from "../services/inventoryBatch.service.js";
 
+// GET /api/orders
 export const getAllOrders = async (req, res) => {
   try {
     const {
@@ -109,7 +110,7 @@ export const getOrderById = async (req, res) => {
       .json({ error: "Lỗi khi lấy chi tiết đơn hàng", detail: err.message });
   }
 };
-
+// Cập nhật số lượng sản phẩm
 const updatePromotionAfterOrder = async (products) => {
   console.log("Cập nhật thông tin khuyến mãi sau khi đặt hàng");
 };

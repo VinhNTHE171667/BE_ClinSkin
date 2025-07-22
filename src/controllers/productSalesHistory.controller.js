@@ -5,6 +5,7 @@ import inventoryBatchService from "../services/inventoryBatch.service.js";
 import { StatusCodes } from 'http-status-codes';
 
 
+// Lấy danh sách lô hàng theo đơn hàng
 export const getBatchItemsByOrderId = async (req, res) => {
     const { orderId } = req.params;
     try {
@@ -76,7 +77,7 @@ export const getBatchItemsByOrderId = async (req, res) => {
         });
     }
 }
-
+// Tạo lịch sử bán hàng
 export const createSalesHistory = async (req, res) => {
     const { orderId, orderData, availableItems } = req.body;
     
