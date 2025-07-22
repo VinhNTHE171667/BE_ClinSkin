@@ -1,5 +1,6 @@
 import Notification from "../models/notification.model.js";
 
+// GET /notifications/by-user
 export const getNotificationsByUser = async (req, res) => {
     try {
         const { type = "STORE" } = req.query;
