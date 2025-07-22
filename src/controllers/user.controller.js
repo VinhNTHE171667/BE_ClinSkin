@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import { uploadImage, deleteImage } from "../ultis/cloudinary.js";
 
+// GET /users
 export const getAllUser = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -51,6 +52,7 @@ export const getAllUser = async (req, res) => {
   }
 };
 
+// PUT /users/:id
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -116,7 +118,7 @@ export const updateUser = async (req, res) => {
 };
 
 
-
+// DELETE /users/:id
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
