@@ -251,6 +251,7 @@ export const getAccountUser = async (req, res) => {
   }
 };
 
+// login
 export const loginAdmin = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -291,7 +292,7 @@ export const loginAdmin = async (req, res) => {
     });
   }
 };
-
+// get account
 export const getAccountAdmin = async (req, res) => {
   try {
     const adminDetails = await Admin.findById(req.admin._id).select(
@@ -330,6 +331,7 @@ export const getAccountAdmin = async (req, res) => {
     });
   }
 };
+// google
 export const googleCallback = async (req, res) => {
   try {
     const accessToken = generateToken(req.user);
@@ -338,6 +340,7 @@ export const googleCallback = async (req, res) => {
     return res.redirect(`${process.env.FRONT_END_URL}/auth?error=server_error`);
   }
 };
+// update profile
 export const updateProfileAdmin = async (req, res) => {
   try {
     const admin = await Admin.findById(req.admin._id); 
