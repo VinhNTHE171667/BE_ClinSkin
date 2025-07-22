@@ -42,6 +42,16 @@ export const getAllBatches = async (req, res) => {
       filter.importer = req.query.importer;
     }
 
+    // Filter by expiry status
+    if (req.query.expiryStatus && req.query.expiryStatus !== 'all') {
+      const currentDate = new Date();
+      if (req.query.expiryStatus === 'expired') {
+        filter.expiryDate = { $lt: currentDate };
+      } else if (req.query.expiryStatus === 'notExpired') {
+        filter.expiryDate = { $gte: currentDate };
+      }
+    }
+
     const sortField = req.query.sortBy || 'createdAt';
     const sortOrder = req.query.sortOrder === 'ascend' ? 1 : -1;
     const sort = { [sortField]: sortOrder };
