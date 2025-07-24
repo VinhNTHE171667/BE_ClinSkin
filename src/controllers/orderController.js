@@ -276,18 +276,20 @@ export const updateStatusOrderByAdmin = async (req, res) => {
     // Store the current status before any changes
     const prevStatus = order.status;
 
-    if (order.status === "delivered" || order.status === "cancelled") {
+    // Check if order is in final state
+    if (["delivered_confirmed", "cancelled", "return_confirmed"].includes(order.status)) {
       return res.status(400).json({
         success: false,
-        message:
-          "Không thể thay đổi trạng thái đơn hàng đã hoàn thành hoặc đã hủy",
+        message: "Không thể thay đổi trạng thái đơn hàng đã hoàn thành hoặc đã hủy",
       });
     }
 
+    // Define valid status transitions for admin
     const validTransitions = {
-      pending: ["processing", "cancelled"],
-      processing: ["shipping", "cancelled"],
-      shipping: ["delivered", "cancelled"],
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["picked_up", "cancelled"],
+      picked_up: ["in_transit", "cancelled"],
+      return: ["return_confirmed"]
     };
 
     if (
@@ -301,11 +303,11 @@ export const updateStatusOrderByAdmin = async (req, res) => {
     }
 
     switch (status) {
-      case "delivered":
-        // Khi giao hàng thành công, cập nhật isCompleted = true trong ProductSalesHistory
+      case "return_confirmed":
+        // Khi admin xác nhận trả hàng
         await ProductSalesHistory.updateMany(
           { orderId: id },
-          { isCompleted: true }
+          { isCompleted: false }
         );
         break;
 
@@ -318,7 +320,7 @@ export const updateStatusOrderByAdmin = async (req, res) => {
         }
 
         // Xử lý hoàn trả khi hủy đơn hàng
-        if (["pending", "processing"].includes(order.status)) {
+        if (["pending", "confirmed", "picked_up"].includes(order.status)) {
           // Đơn hàng chưa tạo sales history, chỉ hoàn trả currentStock của Product
           const restoreResult = await restoreProductQuantity(order.products);
           if (!restoreResult.success) {
@@ -327,7 +329,8 @@ export const updateStatusOrderByAdmin = async (req, res) => {
               message: "Không thể hoàn lại số lượng sản phẩm",
             });
           }
-        } else if (["shipping", "delivered"].includes(order.status)) {
+        } else if (["in_transit", "carrier_confirmed", "delivery_pending", 
+                     "carrier_delivered", "delivery_failed", "delivered_confirmed"].includes(order.status)) {
           // Đơn hàng đã tạo sales history, cần hoàn trả vào inventory batch
           const salesHistories = await ProductSalesHistory.find({ orderId: id });
           
@@ -451,28 +454,18 @@ export const getOrderByUser = async (req, res) => {
     const { status } = req.query;
     const skip = (page - 1) * pageSize;
 
-    let statusCondition;
-    switch (status) {
-      case "pending":
-        statusCondition = "pending";
-        break;
-      case "processing":
-        statusCondition = "processing";
-        break;
-      case "shipping":
-        statusCondition = "shipping";
-        break;
-      case "delivered":
-        statusCondition = "delivered";
-        break;
-      case "cancelled":
-        statusCondition = "cancelled";
-        break;
-      default:
-        statusCondition = {
-          $in: ["pending", "processing", "shipping", "delivered", "cancelled"],
-        };
-    }
+    // Danh sách tất cả trạng thái hợp lệ
+    const validStatuses = [
+      "pending", "confirmed", "picked_up", "in_transit", 
+      "carrier_confirmed", "failed_pickup", "delivery_pending", 
+      "carrier_delivered", "delivery_failed", "delivered_confirmed", 
+      "return", "return_confirmed", "cancelled"
+    ];
+
+    // Nếu có status và hợp lệ thì dùng status đó, không thì lấy tất cả
+    const statusCondition = status && validStatuses.includes(status) 
+      ? status 
+      : { $in: validStatuses };
 
     const [orders, total, counts] = await Promise.all([
       Order.find({ userId: user._id, status: statusCondition })
@@ -492,9 +485,17 @@ export const getOrderByUser = async (req, res) => {
 
     const statusCounts = {
       pending: 0,
-      processing: 0,
-      shipping: 0,
-      delivered: 0,
+      confirmed: 0,
+      picked_up: 0,
+      in_transit: 0,
+      carrier_confirmed: 0,
+      failed_pickup: 0,
+      delivery_pending: 0,
+      carrier_delivered: 0,
+      delivery_failed: 0,
+      delivered_confirmed: 0,
+      return: 0,
+      return_confirmed: 0,
       cancelled: 0,
     };
 
@@ -580,10 +581,11 @@ export const updateStatusOrderByUser = async (req, res) => {
       });
     }
 
+    // Define allowed actions for user
     const allowedActions = {
-      cancelled: ["pending", "processing"],
-      pending: ["cancelled"],
-      delivered: ["shipping"],
+      cancelled: ["pending"], // User can only cancel pending orders
+      delivered_confirmed: ["carrier_delivered"], // User can confirm delivery after carrier delivered
+      delivery_failed: ["carrier_delivered"] // User can report delivery failure
     };
 
     if (!allowedActions[status]?.includes(order.status)) {
@@ -621,39 +623,25 @@ export const updateStatusOrderByUser = async (req, res) => {
 
       order.cancelReason = cancelReason.trim();
       order.status = "cancelled";
-      order.statusHistory.push({
-        prevStatus: currentStatus,
-        status: "cancelled",
-        updatedBy: user._id,
-        updatedByModel: "User",
-        date: new Date(),
-      });
-    } else if (status === "pending") {
-      order.cancelReason = "";
-      order.status = "pending";
-      order.statusHistory.push({
-        prevStatus: currentStatus,
-        status: "pending",
-        updatedBy: user._id,
-        updatedByModel: "User",
-        date: new Date(),
-      });
-    } else if (status === "delivered") {
+    } else if (status === "delivered_confirmed") {
       // Khi user xác nhận đã nhận hàng, cập nhật isCompleted = true trong ProductSalesHistory
       await ProductSalesHistory.updateMany(
         { orderId: id },
         { isCompleted: true }
       );
       
-      order.status = "delivered";
-      order.statusHistory.push({
-        prevStatus: currentStatus,
-        status: "delivered",
-        updatedBy: user._id,
-        updatedByModel: "User",
-        date: new Date(),
-      });
+      order.status = "delivered_confirmed";
+    } else if (status === "delivery_failed") {
+      order.status = "delivery_failed";
     }
+
+    order.statusHistory.push({
+      prevStatus: currentStatus,
+      status: order.status,
+      updatedBy: user._id,
+      updatedByModel: "User",
+      date: new Date(),
+    });
 
     await order.save();
 
@@ -670,11 +658,11 @@ export const updateStatusOrderByUser = async (req, res) => {
       case "cancelled":
         message = "Hủy đơn hàng thành công";
         break;
-      case "pending":
-        message = "Đặt lại đơn hàng thành công";
-        break;
-      case "delivered":
+      case "delivered_confirmed":
         message = "Xác nhận đã nhận hàng thành công";
+        break;
+      case "delivery_failed":
+        message = "Báo cáo giao hàng thất bại thành công";
         break;
       default:
         message = "Cập nhật trạng thái đơn hàng thành công";
@@ -724,6 +712,203 @@ export const getOrderDetailByUser = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+// ==================== SHIPPING API (Simulating Third-party Shipping Service) ====================
+
+// Get orders for shipping - for shipping service to retrieve orders
+export const getOrdersForShipping = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const pageNumber = Math.max(parseInt(page), 1);
+    const pageSize = Math.max(parseInt(limit), 1);
+
+    // Only show orders that are in shipping-related statuses
+    const shippingStatuses = [
+      "in_transit", 
+      "carrier_confirmed", 
+      "failed_pickup", 
+      "delivery_pending", 
+      "carrier_delivered", 
+      "delivery_failed",
+      "return",
+      "return_confirmed"
+    ];
+
+    let query = {};
+    if (status && shippingStatuses.includes(status)) {
+      query.status = status;
+    } else {
+      query.status = { $in: shippingStatuses };
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate("userId", "name phone")
+        .sort({ createdAt: -1 })
+        .skip((pageNumber - 1) * pageSize)
+        .limit(pageSize),
+      Order.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: orders,
+      pagination: {
+        page: pageNumber,
+        totalPages: Math.ceil(total / pageSize),
+        pageSize,
+        totalItems: total,
+      },
+    });
+  } catch (error) {
+    console.error("Get orders for shipping error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách đơn hàng vận chuyển",
+      error: error.message,
+    });
+  }
+};
+
+// Update order status by shipping service
+export const updateOrderStatusByShipping = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, note, codeShip } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng",
+      });
+    }
+
+    const prevStatus = order.status;
+
+    // Define valid status transitions for shipping service
+    const validShippingTransitions = {
+      in_transit: ["carrier_confirmed", "failed_pickup"],
+      carrier_confirmed: ["delivery_pending"],
+      delivery_pending: ["carrier_delivered", "delivery_failed"],
+      delivery_failed: ["return"]
+    };
+
+    if (!validShippingTransitions[order.status]?.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể chuyển trạng thái từ ${order.status} sang ${status}`,
+      });
+    }
+
+    // Handle special cases
+    // switch (status) {
+    //   case "failed_pickup":
+    //     // When pickup fails, restore product quantity
+    //     const restoreResult = await restoreProductQuantity(order.products);
+    //     if (!restoreResult.success) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: "Không thể hoàn lại số lượng sản phẩm",
+    //       });
+    //     }
+    //     break;
+
+    //   case "return":
+    //     // When delivery failed and package needs to be returned
+    //     break;
+    // }
+
+    // Update order status
+    order.status = status;
+    
+    // Update shipping code if provided
+    if (codeShip) {
+      order.codeShip = codeShip;
+    }
+
+    // Add to status history
+    order.statusHistory.push({
+      type: "shipping",
+      note: note || "",
+      prevStatus,
+      status,
+      updatedBy: null, // Shipping service doesn't have user ID
+      updatedByModel: null,
+      date: new Date(),
+    });
+
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Cập nhật trạng thái đơn hàng thành công",
+      data: order,
+    });
+  } catch (error) {
+    console.error("Update order status by shipping error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi cập nhật trạng thái đơn hàng",
+      error: error.message,
+    });
+  }
+};
+
+// Get order details for shipping service
+export const getOrderForShippingDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "ID đơn hàng không hợp lệ" 
+      });
+    }
+
+    const order = await Order.findById(id)
+      .populate("userId", "name email phone")
+      .populate("products.pid", "name price mainImage");
+
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Không tìm thấy đơn hàng" 
+      });
+    }
+
+    // Only allow access to orders in shipping-related statuses
+    const shippingStatuses = [
+      "in_transit", 
+      "carrier_confirmed", 
+      "failed_pickup", 
+      "delivery_pending", 
+      "carrier_delivered", 
+      "delivery_failed",
+      "return"
+    ];
+
+    if (!shippingStatuses.includes(order.status)) {
+      return res.status(403).json({
+        success: false,
+        message: "Đơn hàng này không trong phạm vi vận chuyển",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    console.error("Get order for shipping detail error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy chi tiết đơn hàng",
+      error: error.message,
     });
   }
 };

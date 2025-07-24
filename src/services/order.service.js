@@ -23,18 +23,19 @@ class OrderService {
             totalOrders: { $sum: 1 },
             completedOrders: {
               $sum: {
-                $cond: [{ $eq: ["$status", "delivered"] }, 1, 0],
+                $cond: [{ $eq: ["$status", "delivered_confirmed"] }, 1, 0],
               },
             },
             totalCompletedAmount: {
               $sum: {
-                $cond: [{ $eq: ["$status", "delivered"] }, "$totalAmount", 0],
+                $cond: [{ $eq: ["$status", "delivered_confirmed"] }, "$totalAmount", 0],
               },
             },
             totalPendingAmount: {
               $sum: {
                 $cond: [
-                  { $in: ["$status", ["pending", "confirmed", "shipping"]] },
+                  { $in: ["$status", ["pending", "confirmed", "picked_up", "in_transit", 
+                                     "carrier_confirmed", "delivery_pending", "carrier_delivered"]] },
                   "$totalAmount",
                   0,
                 ],
@@ -95,13 +96,14 @@ class OrderService {
             totalOrders: { $sum: 1 },
             completedOrders: {
               $sum: {
-                $cond: [{ $eq: ["$status", "delivered"] }, 1, 0],
+                $cond: [{ $eq: ["$status", "delivered_confirmed"] }, 1, 0],
               },
             },
             processingOrders: {
               $sum: {
                 $cond: [
-                  { $in: ["$status", ["pending", "confirmed", "shipping"]] },
+                  { $in: ["$status", ["pending", "confirmed", "picked_up", "in_transit", 
+                                     "carrier_confirmed", "delivery_pending", "carrier_delivered"]] },
                   1,
                   0,
                 ],
@@ -166,13 +168,14 @@ class OrderService {
             totalOrders: { $sum: 1 },
             completedOrders: {
               $sum: {
-                $cond: [{ $eq: ["$status", "delivered"] }, 1, 0],
+                $cond: [{ $eq: ["$status", "delivered_confirmed"] }, 1, 0],
               },
             },
             processingOrders: {
               $sum: {
                 $cond: [
-                  { $in: ["$status", ["pending", "confirmed", "shipping"]] },
+                  { $in: ["$status", ["pending", "confirmed", "picked_up", "in_transit", 
+                                     "carrier_confirmed", "delivery_pending", "carrier_delivered"]] },
                   1,
                   0,
                 ],
@@ -238,13 +241,14 @@ class OrderService {
             totalOrders: { $sum: 1 },
             completedOrders: {
               $sum: {
-                $cond: [{ $eq: ["$status", "delivered"] }, 1, 0],
+                $cond: [{ $eq: ["$status", "delivered_confirmed"] }, 1, 0],
               },
             },
             processingOrders: {
               $sum: {
                 $cond: [
-                  { $in: ["$status", ["pending", "confirmed", "shipping"]] },
+                  { $in: ["$status", ["pending", "confirmed", "picked_up", "in_transit", 
+                                     "carrier_confirmed", "delivery_pending", "carrier_delivered"]] },
                   1,
                   0,
                 ],
