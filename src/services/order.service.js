@@ -363,6 +363,88 @@ export const updateProductInventory = async (products, session) => {
   }
 };
 
+// export const calculateOrderAmount = async (
+//   products,
+//   currentDate = new Date()
+// ) => {
+//   let totalAmount = 0;
+//   let calculatedProducts = [];
+
+//   // Lấy thông tin sản phẩm và khuyến mãi trong một lần query
+//   const productIds = products.map((item) => item.productId);
+//   const [productList, activePromotions] = await Promise.all([
+//     Product.find({ _id: { $in: productIds } }),
+//     Promotion.find({
+//       "products.pid": { $in: productIds },
+//       startDate: { $lte: currentDate },
+//       endDate: { $gte: currentDate },
+//       isActive: true,
+//     }),
+//   ]);
+
+//   // Tạo map để tra cứu nhanh
+//   const productMap = new Map(productList.map((p) => [p._id.toString(), p]));
+//   const promotionMap = new Map();
+
+//   activePromotions.forEach((promo) => {
+//     promo.products.forEach((p) => {
+//       promotionMap.set(p.pid.toString(), {
+//         promotion: promo,
+//         discount: p.discount,
+//       });
+//     });
+//   });
+
+//   for (const item of products) {
+//     const product = productMap.get(item.productId.toString());
+//     if (!product) {
+//       throw new Error(`Không tìm thấy sản phẩm: ${item.productId}`);
+//     }
+
+//     // Kiểm tra tồn kho
+//     let availableQuantity;
+//     availableQuantity = product.currentStock || product.totalQuantity;
+//     if (availableQuantity < item.quantity) {
+//       throw new Error(
+//         `Sản phẩm ${product.name} không đủ số lượng trong kho (Yêu cầu: ${item.quantity}, Còn lại: ${availableQuantity})`
+//       );
+//     }
+
+//     // Tính giá với khuyến mãi nếu có
+//     let finalPrice = product.price;
+//     let discountAmount = 0;
+//     const promotionInfo = promotionMap.get(item.productId.toString());
+
+//     if (promotionInfo) {
+//       const { discount } = promotionInfo;
+
+//       // Tính giảm giá theo phần trăm
+//       discountAmount = (product.price * discount) / 100;
+//       finalPrice = product.price - discountAmount;
+//     }
+
+//     const subtotal = finalPrice * item.quantity;
+//     totalAmount += subtotal;
+
+//     calculatedProducts.push({
+//       pid: item.productId,
+//       quantity: item.quantity,
+//       price: finalPrice,
+//       originalPrice: product.price,
+//       discountAmount: discountAmount * item.quantity,
+//       // Thông tin bổ sung (không lưu vào DB)
+//       name: product.name,
+//       image: product.mainImage?.url,
+//       subtotal,
+//     });
+//   }
+
+//   return {
+//     products: calculatedProducts,
+//     totalAmount: Math.round(totalAmount),
+//   };
+// };
+
 export const calculateOrderAmount = async (
   products,
   currentDate = new Date()
@@ -375,7 +457,7 @@ export const calculateOrderAmount = async (
   const [productList, activePromotions] = await Promise.all([
     Product.find({ _id: { $in: productIds } }),
     Promotion.find({
-      "products.pid": { $in: productIds },
+      "products.product": { $in: productIds },
       startDate: { $lte: currentDate },
       endDate: { $gte: currentDate },
       isActive: true,
@@ -386,11 +468,13 @@ export const calculateOrderAmount = async (
   const productMap = new Map(productList.map((p) => [p._id.toString(), p]));
   const promotionMap = new Map();
 
+  // Sửa logic map promotion
   activePromotions.forEach((promo) => {
     promo.products.forEach((p) => {
-      promotionMap.set(p.pid.toString(), {
+      promotionMap.set(p.product.toString(), {
         promotion: promo,
-        discount: p.discount,
+        discountPercentage: p.discountPercentage,
+        maxDiscountAmount: p.maxDiscountAmount,
       });
     });
   });
@@ -402,8 +486,7 @@ export const calculateOrderAmount = async (
     }
 
     // Kiểm tra tồn kho
-    let availableQuantity;
-    availableQuantity = product.currentStock || product.totalQuantity;
+    let availableQuantity = product.currentStock || product.totalQuantity;
     if (availableQuantity < item.quantity) {
       throw new Error(
         `Sản phẩm ${product.name} không đủ số lượng trong kho (Yêu cầu: ${item.quantity}, Còn lại: ${availableQuantity})`
@@ -416,10 +499,16 @@ export const calculateOrderAmount = async (
     const promotionInfo = promotionMap.get(item.productId.toString());
 
     if (promotionInfo) {
-      const { discount } = promotionInfo;
+      const { discountPercentage, maxDiscountAmount } = promotionInfo;
 
       // Tính giảm giá theo phần trăm
-      discountAmount = (product.price * discount) / 100;
+      discountAmount = (product.price * discountPercentage) / 100;
+      
+      // Áp dụng giới hạn giảm giá tối đa nếu có
+      if (maxDiscountAmount > 0) {
+        discountAmount = Math.min(discountAmount, maxDiscountAmount);
+      }
+      
       finalPrice = product.price - discountAmount;
     }
 
@@ -429,7 +518,7 @@ export const calculateOrderAmount = async (
     calculatedProducts.push({
       pid: item.productId,
       quantity: item.quantity,
-      price: finalPrice,
+      price: finalPrice, // Giá đã giảm
       originalPrice: product.price,
       discountAmount: discountAmount * item.quantity,
       // Thông tin bổ sung (không lưu vào DB)

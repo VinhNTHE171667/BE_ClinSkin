@@ -5,9 +5,9 @@ import { StatusCodes } from 'http-status-codes';
 const router = express.Router();
 
 /**
- * POST /api/v1/admin/stock/update-all
+ * GET /api/v1/admin/stock/update-all
  */
-router.post('/update-all', async (req, res) => {
+router.get('/update-all', async (req, res) => {
   try {
     await updateAllProductsStock();
     
