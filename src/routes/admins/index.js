@@ -5,6 +5,7 @@ import { authMiddlewareAdmin } from "../../middleware/auth.middleware.js";
 import {
   accessRole,
   ADMIN_ROLE,
+  STAFF_ROLE,
   SUPPORT_ROLE,
 } from "../../ultis/getRole.js";
 
@@ -26,24 +27,24 @@ router.use("/product", productRoutes);
 router.use("/promotions", promotionRoutes);
 router.use(
   "/categories",
-  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE, STAFF_ROLE])),
   categoryRoutes
 );
 router.use("/brands", brandRoutes);
 router.use(
   "/users",
-  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE, STAFF_ROLE])),
   userRoutes
 );
 router.use(
   "/inventory-batches",
-  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE, STAFF_ROLE])),
   inventoryBatchRoutes
 );
 
 router.use(
   "/sales-history",
-  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE, STAFF_ROLE])),
   salesHistoryRouters
 );
 
@@ -61,7 +62,7 @@ router.use(
 
 router.use(
   "/orders",
-  authMiddlewareAdmin(accessRole([ADMIN_ROLE, SUPPORT_ROLE])),
+  authMiddlewareAdmin(accessRole([ADMIN_ROLE, STAFF_ROLE, SUPPORT_ROLE])),
   orderRoutes
 );
 
