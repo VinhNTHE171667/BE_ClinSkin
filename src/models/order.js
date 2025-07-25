@@ -104,7 +104,24 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "processing", "shipping", "delivered", "cancelled"],
+      enum: [
+        "pending",
+        "confirmed",
+        "picked_up",
+        "in_transit",
+        "carrier_confirmed",
+        "failed_pickup",
+        "delivery_pending",
+        "carrier_delivered",
+        "delivery_failed",
+        "delivered_confirmed",
+        "return",
+        "return_confirmed",
+        // "processing",
+        // "shipping",
+        // "delivered",
+        "cancelled",
+      ],
       default: "pending",
     },
     note: {
@@ -135,6 +152,15 @@ const orderSchema = new mongoose.Schema(
     },
     statusHistory: [
       {
+        type: {
+          type: String,
+          enum: ["normal", "shipping"],
+          default: "normal",
+        },
+        note: {
+          type: String,
+          default: "",
+        },
         prevStatus: String,
         status: String,
         updatedBy: {
