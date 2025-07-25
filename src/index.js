@@ -8,6 +8,7 @@ import adminRoutes from "./routes/admins/index.js";
 import reviewRoutes from "./routes/admins/review.admin-route.js";
 import morgan from "morgan";
 import staffRoutes from "./routes/staffs/index.js";
+import shippingRoutes from "./routes/shipping/index.js";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth2";
@@ -125,6 +126,7 @@ app.use("/api/v1", userRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/admin/reviews", reviewRoutes);
 app.use("/api/v1/admin", staffRoutes);
+app.use("/api/v1/shipping", shippingRoutes);
 server.listen(PORT, async () => {
   await connectDabase();
 

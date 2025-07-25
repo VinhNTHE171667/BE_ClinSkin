@@ -22,7 +22,14 @@ export const updateReview = async (req, res) => {
     review.rate = rate || review.rate;
     review.comment = comment || review.comment;
     review.images = images || review.images;
-    review.reply = reply || review.reply;
+    
+    // Nếu có reply và admin đang cập nhật
+    if (reply && reply !== review.reply && req.admin) {
+      review.reply = reply;
+      review.repliedBy = req.admin._id;
+      review.repliedAt = new Date();
+    }
+    
     if (display !== undefined) review.display = display;
 
     const updatedReview = await review.save();
@@ -345,6 +352,53 @@ export const getReviewByProduct = async (req, res) => {
       success: false,
       message: "Internal Server Error",
       data: [],
+      error: error.message,
+    });
+  }
+};
+
+export const adminReplyReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reply } = req.body;
+    const admin = req.admin;
+
+    if (!reply || reply.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Nội dung phản hồi không được để trống",
+      });
+    }
+
+    const review = await Review.findById(id);
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đánh giá",
+      });
+    }
+
+    review.reply = reply.trim();
+    review.repliedBy = admin._id;
+    review.repliedAt = new Date();
+
+    const updatedReview = await review.save();
+
+    const populatedReview = await Review.findById(updatedReview._id)
+      .populate("userId", "name avatar")
+      .populate("productId", "name images")
+      .populate("repliedBy", "name username role");
+
+    res.status(200).json({
+      success: true,
+      message: "Phản hồi đánh giá thành công",
+      data: populatedReview,
+    });
+  } catch (error) {
+    console.error("Admin reply review error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi phản hồi đánh giá",
       error: error.message,
     });
   }
