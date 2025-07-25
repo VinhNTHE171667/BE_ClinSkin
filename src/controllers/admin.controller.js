@@ -1,5 +1,9 @@
 import Admin from "../models/admin.model.js";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
+import InventoryBatch from "../models/inventoryBatch.model.js";
+import Order from "../models/order.js";
+import Review from "../models/review.js";
 
 
 export const getAllAccountAdmin = async (req, res) => {
@@ -254,6 +258,157 @@ export const removeAccountAdmin = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Lỗi khi xóa tài khoản admin",
+      error: error.message,
+    });
+  }
+};
+
+export const getAdminDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const requestUser = req.admin;
+
+    // Kiểm tra quyền truy cập
+    if (requestUser.role !== "ADMIN" && requestUser._id.toString() !== id) {
+      return res.status(403).json({
+        success: false,
+        message: "Không có quyền truy cập thông tin này",
+      });
+    }
+
+    // Lấy thông tin cơ bản của admin
+    const admin = await Admin.findById(id).select("-password");
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy tài khoản admin",
+      });
+    }
+
+    // Lấy lịch sử nhập hàng
+    const inventoryBatches = await InventoryBatch.find({ importer: id })
+      .populate("productId", "name images")
+      .sort({ createdAt: -1 })
+      .limit(50); // Giới hạn 50 lô hàng gần nhất
+
+    // Thống kê nhập hàng
+    const inventoryStats = await InventoryBatch.aggregate([
+      { $match: { importer: new mongoose.Types.ObjectId(id) } },
+      {
+        $group: {
+          _id: null,
+          totalBatches: { $sum: 1 },
+          totalQuantity: { $sum: "$quantity" },
+          totalValue: { $sum: { $multiply: ["$quantity", "$costPrice"] } },
+        },
+      },
+    ]);
+
+    // Lấy lịch sử cập nhật trạng thái đơn hàng
+    const orderUpdates = await Order.find({
+      "statusHistory.updatedBy": id,
+      "statusHistory.updatedByModel": "Admin",
+    })
+      .select("_id totalAmount status statusHistory createdAt")
+      .sort({ updatedAt: -1 })
+      .limit(100); // Giới hạn 100 đơn hàng gần nhất
+
+    // Thống kê cập nhật đơn hàng
+    let totalOrderUpdates = 0;
+    orderUpdates.forEach(order => {
+      totalOrderUpdates += order.statusHistory.filter(
+        history => history.updatedBy && history.updatedBy.toString() === id
+      ).length;
+    });
+
+    // Lấy lịch sử phản hồi đánh giá
+    const reviewReplies = await Review.find({ repliedBy: id })
+      .populate("userId", "name avatar")
+      .populate("productId", "name images")
+      .select("comment reply repliedAt rate")
+      .sort({ repliedAt: -1 })
+      .limit(50); // Giới hạn 50 phản hồi gần nhất
+
+    // Thống kê phản hồi đánh giá
+    const reviewStats = await Review.aggregate([
+      { $match: { repliedBy: new mongoose.Types.ObjectId(id) } },
+      {
+        $group: {
+          _id: null,
+          totalReplies: { $sum: 1 },
+          avgRatingReplied: { $avg: "$rate" },
+        },
+      },
+    ]);
+
+    // Tổng hợp dữ liệu trả về
+    const response = {
+      success: true,
+      data: {
+        adminInfo: admin,
+        activitySummary: {
+          inventory: {
+            totalBatches: inventoryStats[0]?.totalBatches || 0,
+            totalQuantityImported: inventoryStats[0]?.totalQuantity || 0,
+            totalValueImported: inventoryStats[0]?.totalValue || 0,
+          },
+          orders: {
+            totalOrdersHandled: orderUpdates.length,
+            totalStatusUpdates: totalOrderUpdates,
+          },
+          reviews: {
+            totalReplies: reviewStats[0]?.totalReplies || 0,
+            avgRatingOfRepliedReviews: reviewStats[0]?.avgRatingReplied || 0,
+          },
+        },
+        recentActivity: {
+          inventoryBatches: inventoryBatches.map(batch => ({
+            _id: batch._id,
+            batchNumber: batch.batchNumber,
+            product: batch.productId,
+            quantity: batch.quantity,
+            costPrice: batch.costPrice,
+            remainingQuantity: batch.remainingQuantity,
+            expiryDate: batch.expiryDate,
+            receivedDate: batch.receivedDate,
+            createdAt: batch.createdAt,
+          })),
+          orderUpdates: orderUpdates.map(order => {
+            const adminUpdates = order.statusHistory.filter(
+              history => history.updatedBy && history.updatedBy.toString() === id
+            );
+            return {
+              orderId: order._id,
+              totalAmount: order.totalAmount,
+              currentStatus: order.status,
+              updates: adminUpdates.map(update => ({
+                prevStatus: update.prevStatus,
+                status: update.status,
+                note: update.note,
+                date: update.date,
+              })),
+              createdAt: order.createdAt,
+            };
+          }).filter(order => order.updates.length > 0),
+          reviewReplies: reviewReplies.map(review => ({
+            _id: review._id,
+            user: review.userId,
+            product: review.productId,
+            originalComment: review.comment,
+            reply: review.reply,
+            rating: review.rate,
+            repliedAt: review.repliedAt,
+          })),
+        },
+      },
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Get admin detail error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy thông tin chi tiết admin",
       error: error.message,
     });
   }
