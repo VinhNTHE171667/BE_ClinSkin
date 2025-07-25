@@ -609,6 +609,7 @@ export const orderStripeReturn = async (req, res) => {
   }
 };
 
+// Cập nhật trạng thái đơn hàng
 export const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -636,7 +637,7 @@ export const updateOrder = async (req, res) => {
     });
   }
 };
-
+// GET /api/orders
 export const getOrderByAdmin = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -695,7 +696,7 @@ export const getOrderByAdmin = async (req, res) => {
     });
   }
 };
-
+// PUT /api/orders/:id
 export const updateStatusOrderByAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1083,6 +1084,12 @@ export const updateStatusOrderByUser = async (req, res) => {
         date: new Date(),
       });
     } else if (status === "delivered") {
+      // Khi user xác nhận đã nhận hàng, cập nhật isCompleted = true trong ProductSalesHistory
+      await ProductSalesHistory.updateMany(
+        { orderId: id },
+        { isCompleted: true }
+      );
+      
       order.status = "delivered";
       order.statusHistory.push({
         prevStatus: currentStatus,

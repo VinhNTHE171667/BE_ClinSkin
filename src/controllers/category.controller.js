@@ -2,7 +2,7 @@ import slugify from "slugify";
 import { buildCategoryTree } from "../helpers/category.helper.js";
 import Category from "../models/category.model.js";
 
-// getAll
+
 export const getAllCategory = async (req, res) => {
     try {
         const { page, pageSize, name } = req.query;
@@ -52,7 +52,7 @@ export const getAllCategory = async (req, res) => {
         });
     }
 };
-// create
+
 export const createCategory = async (req, res) => {
     try {
         const { name, parent } = req.body;
@@ -101,7 +101,7 @@ export const createCategory = async (req, res) => {
         });
     }
 };
-// delete
+
 export const deleteCategory = async (req, res) => {
     try {
         const { id } = req.params;
@@ -149,7 +149,7 @@ export const deleteCategory = async (req, res) => {
         });
     }
 };
-// update
+
 export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
