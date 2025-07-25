@@ -167,9 +167,9 @@ export const createSalesHistory = async (req, res) => {
         // Lưu tất cả records vào database
         const createdRecords = await ProductSalesHistory.insertMany(salesHistoryRecords);
 
-        // Cập nhật trạng thái đơn hàng thành "shipping"
+        // Cập nhật trạng thái đơn hàng thành picked_up
         await Order.findByIdAndUpdate(orderId, {
-            status: "shipping"
+            status: "picked_up"
         });
 
         return res.status(StatusCodes.CREATED).json({

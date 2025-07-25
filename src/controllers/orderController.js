@@ -462,10 +462,27 @@ export const getOrderByUser = async (req, res) => {
       "return", "return_confirmed", "cancelled"
     ];
 
-    // Nếu có status và hợp lệ thì dùng status đó, không thì lấy tất cả
-    const statusCondition = status && validStatuses.includes(status) 
-      ? status 
-      : { $in: validStatuses };
+    // Xử lý status - có thể là string hoặc array (comma-separated)
+    let statusCondition;
+    if (status) {
+      // Nếu status là string có chứa dấu phẩy, split thành array
+      const statusArray = typeof status === 'string' && status.includes(',') 
+        ? status.split(',').map(s => s.trim()) 
+        : [status];
+      
+      // Lọc chỉ lấy những status hợp lệ
+      const validStatusArray = statusArray.filter(s => validStatuses.includes(s));
+      
+      if (validStatusArray.length > 0) {
+        statusCondition = validStatusArray.length === 1 
+          ? validStatusArray[0] 
+          : { $in: validStatusArray };
+      } else {
+        statusCondition = { $in: validStatuses };
+      }
+    } else {
+      statusCondition = { $in: validStatuses };
+    }
 
     const [orders, total, counts] = await Promise.all([
       Order.find({ userId: user._id, status: statusCondition })
@@ -585,8 +602,24 @@ export const updateStatusOrderByUser = async (req, res) => {
     const allowedActions = {
       cancelled: ["pending"], // User can only cancel pending orders
       delivered_confirmed: ["carrier_delivered"], // User can confirm delivery after carrier delivered
-      delivery_failed: ["carrier_delivered"] // User can report delivery failure
+      delivery_failed: ["carrier_delivered"], // User can report delivery failure
     };
+
+    // Check if user can update from delivery_failed status
+    let canUpdateFromDeliveryFailed = false;
+    if (order.status === "delivery_failed" && order.statusHistory.length > 0) {
+      const lastStatusUpdate = order.statusHistory[order.statusHistory.length - 1];
+      // Check if the last status change was made by the current user
+      canUpdateFromDeliveryFailed = 
+        lastStatusUpdate.updatedByModel === "User" && 
+        lastStatusUpdate.updatedBy?.toString() === user._id.toString();
+    }
+
+    // Add special permissions for delivery_failed status
+    if (canUpdateFromDeliveryFailed) {
+      allowedActions.delivered_confirmed = [...(allowedActions.delivered_confirmed || []), "delivery_failed"];
+      allowedActions.cancelled = [...(allowedActions.cancelled || []), "delivery_failed"];
+    }
 
     if (!allowedActions[status]?.includes(order.status)) {
       return res.status(400).json({
@@ -613,12 +646,55 @@ export const updateStatusOrderByUser = async (req, res) => {
         });
       }
 
-      const restoreResult = await restoreProductQuantity(order.products);
-      if (!restoreResult.success) {
-        return res.status(400).json({
-          success: false,
-          message: "Không thể hoàn lại số lượng sản phẩm",
-        });
+      // Handle inventory restoration based on current status
+      if (order.status === "pending") {
+        // For pending orders, restore to currentStock
+        const restoreResult = await restoreProductQuantity(order.products);
+        if (!restoreResult.success) {
+          return res.status(400).json({
+            success: false,
+            message: "Không thể hoàn lại số lượng sản phẩm",
+          });
+        }
+      } else if (order.status === "delivery_failed") {
+        // For delivery_failed orders, restore to inventory batch if sales history exists
+        const salesHistories = await ProductSalesHistory.find({ orderId: id });
+        
+        if (salesHistories.length > 0) {
+          for (const salesHistory of salesHistories) {
+            // Hoàn trả số lượng vào từng batch theo costDetails
+            for (const costDetail of salesHistory.costDetails) {
+              try {
+                // Tìm batch và cộng lại số lượng
+                const batch = await inventoryBatchService.getBatchByNumber(costDetail.batchNumber);
+                if (batch) {
+                  // Chỉ cập nhật remainingQuantity, cộng lại số lượng đã bán
+                  await inventoryBatchService.updateBatch(
+                    costDetail.batchNumber,
+                    undefined, // Không thay đổi total quantity
+                    undefined, // Không thay đổi expiry date
+                    batch.remainingQuantity + costDetail.quantityTaken // Cộng lại remaining quantity
+                  );
+                }
+              } catch (error) {
+                console.error(`Lỗi khi hoàn trả batch ${costDetail.batchNumber}:`, error);
+              }
+            }
+            
+            // Cập nhật isCompleted = false
+            salesHistory.isCompleted = false;
+            await salesHistory.save();
+          }
+        } else {
+          // Fallback to restoring currentStock if no sales history found
+          const restoreResult = await restoreProductQuantity(order.products);
+          if (!restoreResult.success) {
+            return res.status(400).json({
+              success: false,
+              message: "Không thể hoàn lại số lượng sản phẩm",
+            });
+          }
+        }
       }
 
       order.cancelReason = cancelReason.trim();
