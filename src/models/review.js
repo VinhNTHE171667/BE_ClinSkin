@@ -46,6 +46,15 @@ export const reviewSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    repliedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      default: null,
+    },
+    repliedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
