@@ -16,6 +16,7 @@ import { saveUser } from "./services/user.service.js";
 import User from "./models/user.model.js";
 import { app, server } from "./websocket/index.js";
 import { initCronJobs } from "./cronjobs/stockUpdate.cron.js";
+import { handleWebhookOrder } from "./controllers/orderController.js";
 
 dotenv.config();
 
@@ -23,8 +24,14 @@ const PORT = process.env.PORT || 9999;
 const clientID = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.post(
+  "/webhook-stripe",
+  express.raw({ type: "application/json" }),
+  handleWebhookOrder
+);
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
 app.use(
   cors({
@@ -93,7 +100,7 @@ app.get("/api/v1/auth/google/callback", (req, res, next) => {
     }
     req.logIn(user, (err) => {
       console.log("error", err);
-      
+
       if (err) {
         return res.redirect(
           `${process.env.FRONT_END_URL}/auth?error=login_error`
@@ -120,8 +127,8 @@ app.use("/api/v1/admin/reviews", reviewRoutes);
 app.use("/api/v1/admin", staffRoutes);
 server.listen(PORT, async () => {
   await connectDabase();
-  
+
   initCronJobs();
-  
+
   console.log(`🚀-------------SERVER RUN PORT ${PORT}-------------🚀`);
 });

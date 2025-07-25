@@ -121,6 +121,7 @@ export const getProductHome = async (req, res) => {
             totalReviews: 1,
             averageRating: 1,
             ratingDistribution: 1,
+            currentStock: 1,
           },
         },
         {
@@ -131,6 +132,9 @@ export const getProductHome = async (req, res) => {
         },
         { $limit: 10 },
       ]);
+
+      console.log("products", products);
+      
 
       if (products.length > 0) {
         productsByTag.push({

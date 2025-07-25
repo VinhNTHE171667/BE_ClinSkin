@@ -441,37 +441,6 @@ export const calculateOrderAmount = async (
   };
 };
 
-// export const restoreProductQuantity = async (orderProducts) => {
-//   try {
-//     if (!Array.isArray(orderProducts) || orderProducts.length === 0) {
-//       return {
-//         success: false,
-//         message: "Không có sản phẩm để hoàn lại số lượng",
-//       };
-//     }
-
-//     const bulkOps = orderProducts.map((product) => ({
-//       updateOne: {
-//         filter: {
-//           _id: product.productId,
-//         },
-//         update: {
-//           $inc: {
-//             "variants.$.quantity": product.quantity,
-//             totalQuantity: product.quantity,
-//           },
-//         },
-//       },
-//     }));
-
-//     const result = await Product.bulkWrite(bulkOps);
-//     return { success: true, modifiedCount: result.modifiedCount };
-//   } catch (error) {
-//     console.error("Lỗi khi hoàn lại số lượng sản phẩm:", error);
-//     return { success: false, error: error.message };
-//   }
-// };
-
 export const restoreProductQuantity = async (orderProducts) => {
   try {
     if (!Array.isArray(orderProducts) || orderProducts.length === 0) {

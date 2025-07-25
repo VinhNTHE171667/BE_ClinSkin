@@ -11,6 +11,7 @@ export const baseProductFields = {
   tags: 1,
   variants: 1,
   capacity: 1,
+  currentStock: 1,
 };
 
 export const promotionFields = {
