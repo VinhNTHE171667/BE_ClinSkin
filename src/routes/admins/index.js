@@ -68,7 +68,6 @@ router.use(
 
 router.use(
   "/stock",
-  authMiddlewareAdmin(accessRole([ADMIN_ROLE])),
   stockRoutes
 );
 

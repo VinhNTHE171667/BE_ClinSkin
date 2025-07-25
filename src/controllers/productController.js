@@ -98,6 +98,7 @@ export const getProducts = async (req, res) => {
     });
   }
 };
+// get product by id
 
 export const getProductById = async (req, res) => {
   try {
@@ -125,7 +126,7 @@ export const getProductById = async (req, res) => {
     });
   }
 };
-
+// create product
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -206,7 +207,7 @@ export const createProduct = async (req, res) => {
     });
   }
 };
-
+//  update product
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -269,7 +270,7 @@ export const updateProduct = async (req, res) => {
         }
       }
     }
-
+// cap nhat san pham
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
       {
@@ -299,6 +300,7 @@ export const updateProduct = async (req, res) => {
     });
   }
 };
+// xoa san pham
 
 export const deleteProduct = async (req, res) => {
   try {
@@ -336,6 +338,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
+// khoi phuc san pham
 export const restoreProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -371,7 +374,7 @@ export const restoreProduct = async (req, res) => {
     });
   }
 };
-
+// lay san pham
 export const getProductByPromotionAdd = async (req, res) => {
   try {
     console.log("kkkkkkkkkkkkkkkkkkkkk");

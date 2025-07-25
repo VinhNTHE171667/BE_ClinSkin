@@ -4,6 +4,7 @@ import OrderService from "../services/order.service.js";
 import UserService from "../services/user.service.js";
 import ReviewService from "../services/review.service.js";
 
+// lấy thống trong tháng cụ thể trong năm
 export const getProductsWithNearExpiryBatches = async (req, res) => {
     try {
         const { days, page, pageSize } = req.query;

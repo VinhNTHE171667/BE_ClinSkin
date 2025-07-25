@@ -89,6 +89,7 @@ export const getProductHome = async (req, res) => {
       });
     }
 
+    const currentDate = new Date();
     const productsByTag = [];
 
     for (const tag of tagList) {
@@ -101,6 +102,12 @@ export const getProductHome = async (req, res) => {
             isDeleted: false,
           },
         },
+        getPromotionLookupStage(currentDate),
+        getPromotionFieldsStage(),
+
+        getReviewLookupStagePro(),
+        getReviewFieldsStagePro(),
+        
         ...brandAndCategoryInfo,
         {
           $project: {
@@ -114,10 +121,20 @@ export const getProductHome = async (req, res) => {
             totalReviews: 1,
             averageRating: 1,
             ratingDistribution: 1,
+            currentStock: 1,
+          },
+        },
+        {
+          $sort: {
+            averageRating: -1,
+            finalPrice: 1,
           },
         },
         { $limit: 10 },
       ]);
+
+      console.log("products", products);
+      
 
       if (products.length > 0) {
         productsByTag.push({
@@ -202,11 +219,20 @@ export const getAllProductByUser = async (req, res) => {
     const sortField = req.query.sortField || "createdAt";
     const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
 
+    const currentDate = new Date();
+
     const aggregationPipeline = [
       { $match: { isDeleted: false } },
 
+      getPromotionLookupStage(currentDate),
+      getPromotionFieldsStage(),
+      getReviewLookupStagePro(),
+      getReviewFieldsStagePro(),
+
       ...brandAndCategoryInfo,
 
+      getFullProjectStage({ createdAt: 1 }),
+      
       {
         $sort: {
           [sortField]: sortOrder,
@@ -556,6 +582,163 @@ export const getListFromCategory = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Lỗi máy chủ",
+      data: [],
+      error: error.message,
+    });
+  }
+};
+
+export const getProductPromotion = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 12;
+    const {
+      priceRange,
+      brands,
+      rating,
+      categories,
+      tags,
+      sortOrder = "asc",
+    } = req.query;
+
+    const currentDate = new Date();
+
+    // Build match stage
+    let matchStage = {
+      isDeleted: false,
+    };
+
+    if (categories) {
+      const categoryIds = categories
+        .split(",")
+        .map((id) => new mongoose.Types.ObjectId(id));
+      matchStage.categories = { $in: categoryIds };
+    }
+
+    if (brands) {
+      const brandIds = brands
+        .split(",")
+        .map((id) => new mongoose.Types.ObjectId(id));
+      matchStage.brandId = { $in: brandIds };
+    }
+
+    if (tags) {
+      matchStage.tags = { $in: tags.split(",") };
+    }
+
+    const aggregationPipeline = [
+      // Lookup promotions
+      getPromotionLookupStage(currentDate),
+      getPromotionFieldsStage(),
+
+      // Only get products with active promotions
+      { $match: { isPromotion: true } },
+
+      // Add other match conditions
+      { $match: matchStage },
+
+      {
+        ...calulateFinalPricePipeline,
+      },
+
+      {
+        $addFields: {
+          finalPrice: { $round: ["$finalPrice", 0] },
+        },
+      },
+
+      // Price filter
+      ...(priceRange
+        ? [
+            {
+              $match: {
+                finalPrice: {
+                  $gte: Number(priceRange.split("-")[0]),
+                  $lte: Number(priceRange.split("-")[1]),
+                },
+              },
+            },
+          ]
+        : []),
+
+      // Rating filter
+      ...(rating
+        ? [
+            {
+              $lookup: {
+                from: "reviews",
+                localField: "_id",
+                foreignField: "productId",
+                as: "reviews",
+              },
+            },
+            {
+              $match: {
+                "reviews.rate": Number(rating),
+              },
+            },
+          ]
+        : []),
+
+      // Get review stats
+      getReviewLookupStagePro(),
+      getReviewFieldsStagePro(),
+
+      // Get brand & category info
+      ...brandAndCategoryInfo,
+
+      // Project fields
+      {
+        ...projectFileds,
+      },
+
+      // Sort
+      {
+        $sort: {
+          ...(sortOrder === "promotion"
+            ? { "promotion.discountPercentage": -1 }
+            : { finalPrice: sortOrder === "asc" ? 1 : -1 }),
+          _id: 1,
+        },
+      },
+
+      // Facet for pagination
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $skip: (page - 1) * pageSize }, { $limit: pageSize }],
+        },
+      },
+    ];
+
+    const [result] = await Product.aggregate(aggregationPipeline);
+
+    const total = result.metadata[0]?.total || 0;
+    const products = result.data;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        pagination: {
+          page,
+          pageSize,
+          totalPage: Math.ceil(total / pageSize),
+          totalItems: total,
+        },
+        products:
+          products && products.length > 0
+            ? products.map((p) => ({
+                ...p,
+                finalPrice: calculateFinalPrice(p),
+              }))
+            : [],
+      },
+    });
+  } catch (error) {
+    console.error("Get promotion products error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
       data: [],
       error: error.message,
     });
