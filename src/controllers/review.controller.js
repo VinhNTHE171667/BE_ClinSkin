@@ -101,7 +101,7 @@ export const getReviewByAdmin = async (req, res) => {
       {
         $lookup: {
           from: "users",
-          localField: "user",
+          localField: "userId",
           foreignField: "_id",
           as: "userDetails",
         },
@@ -110,7 +110,7 @@ export const getReviewByAdmin = async (req, res) => {
       {
         $lookup: {
           from: "products",
-          localField: "product",
+          localField: "productId",
           foreignField: "_id",
           as: "productDetails",
         },

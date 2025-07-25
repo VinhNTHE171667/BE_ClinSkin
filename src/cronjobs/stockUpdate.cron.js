@@ -19,7 +19,7 @@ export const initCronJobs = () => {
 
   console.log('Cronjobs is running:');
 };
-// Chạy ngay lúc 2:00 AM
+
 export const runStockUpdateNow = async () => {
   console.log('Running stock update immediately...');
   try {

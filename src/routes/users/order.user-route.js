@@ -7,6 +7,8 @@ import {
   getOrderDetailByUser,
   updateOrderByUser,
   updateStatusOrderByUser,
+  createOrderStripe,
+  orderStripeReturn
 } from "../../controllers/orderController.js";
 import { validateMiddleWare } from "../../middleware/validate.middleware.js";
 
@@ -19,9 +21,17 @@ router.post(
   validateMiddleWare,
   createOrderCod
 );
+router.post(
+  "/stripe",
+  authMiddlewareUser,
+  createOrderValidate,
+  validateMiddleWare,
+  createOrderStripe
+);
 router.get("/", authMiddlewareUser, getOrderByUser);
 router.get("/detail/:id", authMiddlewareUser, getOrderDetailByUser);
 router.put("/:id", authMiddlewareUser, updateOrderByUser);
 router.put("/status/:id", authMiddlewareUser, updateStatusOrderByUser);
+router.get("/stripe-return", authMiddlewareUser, orderStripeReturn);
 
 export default router;
