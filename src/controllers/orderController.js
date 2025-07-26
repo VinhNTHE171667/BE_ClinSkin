@@ -494,7 +494,7 @@ export const orderStripeReturn = async (req, res) => {
 
     // Tìm order theo stripeSessionId
     if (sessionId) {
-      order = await Order.findOne({ stripeSessionId: sessionId }).lean();
+      order = await Order.findOne({ stripeSessionId: sessionId });
     }
 
     // Tìm order theo _id nếu chưa có
@@ -510,26 +510,59 @@ export const orderStripeReturn = async (req, res) => {
         });
       }
       
-      order = await Order.findById(orderId).lean();
+      order = await Order.findById(orderId);
       console.log("📋 Order found by _id:", order ? "YES" : "NO");
-      
-      if (order) {
-        console.log("📋 Order details:", {
-          _id: order._id,
-          status: order.status,
-          stripeSessionId: order.stripeSessionId,
-          userId: order.userId,
-          totalAmount: order.totalAmount
-        });
-      }
     }
 
     if (order) {
-      console.log("✅ Order found, status:", order.status);
+      console.log("✅ Order found, status:", order);
       
-      // ✅ FIX: Xử lý tất cả trạng thái, bao gồm pending
+      // ✅ NEW: Xử lý payment logic tại đây (thay vì webhook)
+      if (order.status === "pending" && sessionId) {
+        try {
+          console.log("🔄 Processing payment for pending order...");
+          
+          // Verify Stripe session
+          const session = await stripe.checkout.sessions.retrieve(sessionId);
+          
+          if (session.payment_status === "paid") {
+            console.log("💳 Payment confirmed, updating order...");
+            
+            // Cập nhật trạng thái đơn hàng
+            order.status = "confirmed";
+            order.statusHistory.push({
+              type: "normal",
+              note: "Thanh toán Stripe thành công",
+              prevStatus: "pending",
+              status: "confirmed",
+              updatedBy: order.userId,
+              updatedByModel: "User",
+              date: new Date(),
+            });
+
+            await order.save();
+            console.log("✅ Order status updated to processing");
+
+            // Trừ kho
+            await updateProductInventory(order.products);
+            console.log("✅ Inventory updated");
+
+            // Cập nhật promotion
+            await updatePromotionAfterOrder(order.products);
+            console.log("✅ Promotions updated");
+            
+          } else {
+            console.log("❌ Payment not confirmed, session status:", session.payment_status);
+          }
+        } catch (error) {
+          console.error("❌ Error processing payment:", error);
+          // Vẫn trả về thông tin order để user biết
+        }
+      }
+      
+      // Trả về response dựa trên status hiện tại
       if (
-        order.status === "processing" ||
+        order.status === "confirmed" ||
         order.status === "shipping" ||
         order.status === "delivered"
       ) {
@@ -552,8 +585,6 @@ export const orderStripeReturn = async (req, res) => {
           },
         });
       } else if (order.status === "pending") {
-        // ✅ FIX: Với Stripe, pending có thể là trạng thái tạm thời
-        // Trả về thông tin đơn hàng để hiển thị
         return res.status(200).json({
           success: true,
           message: "Đơn hàng đang xử lý thanh toán",
@@ -570,7 +601,7 @@ export const orderStripeReturn = async (req, res) => {
             addressDetail: order.addressDetail,
             createdAt: order.createdAt,
             note: order.note,
-            message: "Thanh toán đang được xử lý, đơn hàng sẽ được cập nhật trong giây lát"
+            message: "Thanh toán đang được xử lý, vui lòng chờ trong giây lát"
           },
         });
       } else {
