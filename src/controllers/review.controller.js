@@ -190,7 +190,77 @@ export const getReviewByAdmin = async (req, res) => {
   }
 };
 
-// create review
+// create review with order validation
+export const createReviewWithOrderValidation = async (req, res) => {
+  try {
+    const { productId, rate, comment, images } = req.body;
+    const userId = req.user._id;
+
+    // Kiểm tra sản phẩm có tồn tại không
+    const dataProduct = await Product.findById(productId);
+    if (!dataProduct) {
+      return res.status(404).json({
+        success: false,
+        message: "Sản phẩm không tồn tại",
+      });
+    }
+
+    // Tìm đơn hàng của user có chứa sản phẩm này và đã giao thành công
+    const deliveredOrder = await Order.findOne({
+      userId: userId,
+      status: "delivered_confirmed", // Trạng thái đã giao thành công
+      "products.pid": productId
+    });
+
+    if (!deliveredOrder) {
+      return res.status(400).json({
+        success: false,
+        message: "Bạn chỉ có thể đánh giá sản phẩm đã mua và nhận thành công",
+      });
+    }
+
+    // Kiểm tra sản phẩm trong đơn hàng đã được đánh giá chưa
+    const productIndex = deliveredOrder.products.findIndex(
+      (p) => p.pid.toString() === productId
+    );
+
+    if (deliveredOrder.products[productIndex].isReviewed) {
+      return res.status(400).json({
+        success: false,
+        message: "Sản phẩm này đã được đánh giá",
+      });
+    }
+
+    // Tạo đánh giá
+    const reviewData = {
+      userId,
+      productId,
+      rate,
+      comment,
+      images: images || [],
+      order: deliveredOrder._id
+    };
+
+    const newReview = await Review.create(reviewData);
+
+    // Cập nhật trạng thái đã đánh giá cho sản phẩm trong đơn hàng
+    deliveredOrder.products[productIndex].isReviewed = true;
+    await deliveredOrder.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Đánh giá sản phẩm thành công",
+      data: newReview,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi đánh giá sản phẩm",
+      error: error.message,
+    });
+  }
+};
+
 export const createReview = async (req, res) => {
   try {
     const { order, productId, rate, comment, images } = req.body;
