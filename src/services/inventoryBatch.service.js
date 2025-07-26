@@ -231,7 +231,7 @@ class InventoryBatchService {
       })
       .populate({
         path: 'productId',
-        select: 'name mainImage currentStock price'
+        select: '_id name mainImage currentStock price'
       })
       .sort({ expiryDate: 1 })
       .lean();
@@ -243,6 +243,7 @@ class InventoryBatchService {
         
         if (!productGroups[productId]) {
           productGroups[productId] = {
+            productId: batch.productId._id,
             name: batch.productId.name,
             currentStock: batch.productId.currentStock,
             mainImage: batch.productId.mainImage,
